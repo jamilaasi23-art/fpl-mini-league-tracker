@@ -2,33 +2,38 @@ import streamlit as st
 import requests
 import time
 
-# === CONFIG ===
-st.set_page_config(page_title="إيد مين بطيز مين", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    .main {background: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif;}
-    .title {font-size: 48px; text-align: center; font-weight: 700; 
-            background: linear-gradient(90deg, #f43f5e, #fbbf24); -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; margin: 20px 0;}
-    .logo {display: block; margin: 0 auto 10px; height: 80px; border-radius: 12px;}
-    .card {background: #1e293b; border-radius: 12px; padding: 16px; margin: 12px 0; 
-           border: 1px solid #334155; transition: all 0.2s;}
-    .card:hover {border-color: #f43f5e; transform: translateY(-2px);}
-    .rank {font-size: 24px; font-weight: 700; color: #fbbf24;}
-    .top1 {background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000;}
-    .top2 {background: #94a3b8;}
-    .top3 {background: #f97316;}
-    .player-img {width: 50px; height: 50px; border-radius: 50%; object-fit: cover; 
-                 border: 2px solid #475569;}
-    .captain {border: 3px solid #fbbf24 !important;}
-    .chip {background: #dc2626; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;}
-    .stButton>button {background: #f43f5e; color: white; border-radius: 8px; font-weight: 600;}
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
+    .main {background: #3D195B; color: #FFFFFF; font-family: 'Inter', sans-serif; padding: 10px;}
+    .title {font-size: 28px; text-align: center; background: linear-gradient(90deg, #0057B8, #E90052); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 5px 0; font-weight: 700;}
+    .logo {height: 40px; display: block; margin: 0 auto 5px;}
+    .row {display: flex; align-items: center; padding: 8px 12px; margin: 2px 0; 
+          background: #F5F5F5; border-radius: 8px; border-left: 4px solid #0057B8; font-size: 13px; color: #000;}
+    .top1 {background: linear-gradient(135deg, #E90052, #0057B8) !important; color: #FFF !important; border-left-color: #FFFFFF;}
+    .top2 {background: linear-gradient(135deg, #3D195B, #0057B8) !important; color: #FFF !important;}
+    .top3 {background: linear-gradient(135deg, #E90052, #3D195B) !important; color: #FFF !important;}
+    .rank {font-weight: 700; font-size: 16px; min-width: 30px;}
+    .points {font-weight: 700; font-size: 15px; min-width: 50px; text-align: right;}
+    .gw {font-size: 12px; color: #0057B8;}
+    .gw-down {color: #E90052;}
+    .chip {font-size: 10px; padding: 2px 6px; background: #E90052; color: #FFF; border-radius: 10px; margin-left: 4px;}
+    .pitch {background: url('https://i.imgur.com/8vY5j7I.png') no-repeat center center; 
+            background-size: cover; height: 400px; position: relative; border-radius: 12px; margin: 10px 0;}
+    .player-pos {position: absolute; width: 50px; text-align: center; color: #FFF; font-weight: 700; text-shadow: 1px 1px 3px #000;}
+    .player-img {width: 40px; height: 40px; border-radius: 50%; border: 2px solid #FFF; margin-bottom: 4px;}
+    .captain {border: 3px solid #FFD700 !important;}
+    .bench-row {display: flex; justify-content: center; gap: 10px; margin-top: 10px;}
+    .bench-player {text-align: center; width: 70px; opacity: 0.8;}
+    .collapsible {background: #F5F5F5; padding: 10px; border-radius: 8px; margin: 5px 0; color: #000;}
+    .stButton>button {background: #0057B8; color: #FFF; border-radius: 8px; font-weight: 600; font-size: 12px; padding: 4px 8px;}
 </style>
 """, unsafe_allow_html=True)
 
-# === LOGO (CHANGE THIS URL) ===
-LOGO_URL = "https://via.placeholder.com/300x80/1e293b/f43f5e?text=Your+Logo"  # ← REPLACE THIS
+# LOGO
+LOGO_URL = "https://via.placeholder.com/200x40/3D195B/E90052?text=إيد+مين+بطيز+مين"
 st.markdown(f"<img src='{LOGO_URL}' class='logo'>", unsafe_allow_html=True)
 st.markdown("<h1 class='title'>إيد مين بطيز مين</h1>", True)
 
@@ -38,11 +43,9 @@ IMG_BASE = "https://resources.premierleague.com/premierleague/photos/players/110
 
 # === DATA ===
 @st.cache_data(ttl=60)
-def get_all():
+def get_all_data():
     try:
-        # Standings
         standings = requests.get(f"{BASE_URL}leagues-classic/{LEAGUE_ID}/standings/").json()['standings']['results']
-        # Bootstrap
         boot = requests.get(f"{BASE_URL}bootstrap-static/").json()
         gw = next(e['id'] for e in boot['events'] if e['is_current'])
         live = requests.get(f"{BASE_URL}event/{gw}/live/").json()
@@ -51,117 +54,131 @@ def get_all():
     except:
         return [], 1, {}, {}
 
-standings, gw, live, players = get_all()
+standings, gw, live, players = get_all_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
-# === REFRESH ===
-refresh = st.sidebar.slider("Refresh", 30, 300, 60)
-if st.sidebar.button("Refresh"):
-    st.rerun()
+# === POSITIONS ON PITCH (x, y in %) ===
+POSITIONS = {
+    1: {"GK": (50, 85)},
+    2: {"DEF": [(25, 70), (50, 70), (75, 70)]},
+    3: {"DEF": [(20, 70), (40, 70), (60, 70), (80, 70)]},
+    4: {"DEF": [(15, 70), (35, 70), (65, 70), (85, 70)]},
+    5: {"DEF": [(10, 70), (30, 70), (50, 70), (70, 70), (90, 70)]},
+    2: {"MID": [(35, 50), (65, 50)]},
+    3: {"MID": [(25, 50), (50, 50), (75, 50)]},
+    4: {"MID": [(20, 50), (40, 50), (60, 50), (80, 50)]},
+    5: {"MID": [(15, 50), (35, 50), (50, 50), (65, 50), (85, 50)]},
+    1: {"FWD": [(50, 25)]},
+    2: {"FWD": [(35, 25), (65, 25)]},
+    3: {"FWD": [(25, 25), (50, 25), (75, 25)]}
+}
 
-# === TABLE ===
-if not standings:
-    st.error("No data")
-    st.stop()
-
-for p in standings:
-    rank = p['rank']
-    name = p['player_name']
-    team = p['entry_name']
-    total = p['total']
-    entry_id = p['entry']
+# === MAIN LOOP ===
+for player in standings:
+    rank = player['rank']
+    name = player['player_name'][:12]
+    team = player['entry_name'][:15]
+    total = player['total']
+    entry_id = player['entry']
     
     # Live GW
+    change_str = chip_str = ""
     try:
         picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
         picks = picks_data['picks']
         chip = picks_data.get('active_chip')
-        gw_live = sum(live_pts.get(pk['element'], 0) * pk['multiplier'] for pk in picks)
-        change = gw_live - p['event_total']
-        change_str = f"<span style='color:#10b981; font-weight:600'> (+{change})</span>" if change > 0 else \
-                     f"<span style='color:#ef4444; font-weight:600'> ({change})</span>" if change < 0 else ""
+        if chip:
+            chip_str = f"<span class='chip'>{chip[0].upper()}</span>"
+        gw_live = sum(live_pts.get(p['element'], 0) * p['multiplier'] for p in picks)
+        change = gw_live - player['event_total']
+        change_str = f"<span class='gw'>+{change}</span>" if change > 0 else f"<span class='gw-down'>{change}</span>" if change < 0 else ""
     except:
-        change_str = ""
-        chip = None
+        pass
 
-    rank_class = "top1" if rank == 1 else "top2" if rank == 2 else "top3" if rank == 3 else ""
-    st.markdown(f"""
-    <div class='card {rank_class}'>
-        <div style='display:flex; justify-content:space-between; align-items:center;'>
-            <div>
-                <span class='rank'>#{rank}</span> 
-                <b style='font-size:18px; margin-left:8px;'>{name}</b>
-            </div>
-            <div style='text-align:right;'>
-                <div style='font-size:20px; font-weight:700;'>{total}</div>
-                <div style='font-size:14px; color:#94a3b8;'>
-                    GW: <b>{p['event_total']}</b>{change_str} {f"<span class='chip'>{chip.upper()}</span>" if chip else ""}
-                </div>
-            </div>
+    row_class = "top1" if rank == 1 else "top2" if rank == 2 else "top3" if rank <= 3 else ""
+    
+    with st.container():
+        st.markdown(f"""
+        <div class='row {row_class}'>
+            <span class='rank'>#{rank}</span>
+            <span style='flex:1; margin-left:10px;'>{name}</span>
+            <span style='font-weight:600; min-width:120px;'>{team}</span>
+            <span class='points'>{total}</span>
+            <span style='min-width:60px;'>
+                <span class='points'>{player['event_total']}</span>{change_str}{chip_str}
+            </span>
         </div>
-        <div style='margin-top:12px; font-weight:600; color:#e2e8f0;'>{team}</div>
-    </div>
-    """, True)
-    
-    if st.button("View Squad", key=f"v_{entry_id}"):
-        st.session_state.selected = entry_id
+        """, True)
+        
+        # COLLAPSIBLE SQUAD
+        with st.expander("", expanded=False):
+            st.markdown("<div class='collapsible'>", True)
+            
+            # Get picks
+            try:
+                picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
+                picks = picks_data['picks']
+                chip = picks_data.get('active_chip')
+                if chip:
+                    st.markdown(f"<p style='text-align:center; margin:5px;'><span class='chip'>{chip.upper()}</span></p>", True)
+                
+                starters = [p for p in picks if p['position'] <= 11]
+                bench = [p for p in picks if p['position'] > 11]
+                
+                # Count by position
+                gk = [p for p in starters if players[p['element']]['element_type'] == 1]
+                defs = [p for p in starters if players[p['element']]['element_type'] == 2]
+                mids = [p for p in starters if players[p['element']]['element_type'] == 3]
+                fwds = [p for p in starters if players[p['element']]['element_type'] == 4]
+                
+                # Pitch
+                st.markdown("<div class='pitch'>", True)
+                for p in starters:
+                    pl = players[p['element']]
+                    pos = pl['element_type']
+                    idx = [s for s in starters if players[s['element']]['element_type'] == pos].index(p)
+                    coords = POSITIONS[len([s for s in starters if players[s['element']]['element_type'] <= pos])][["GK","DEF","MID","FWD"][pos-1]][idx]
+                    x, y = coords
+                    img_code = pl['photo'].replace('.jpg', '')
+                    img = f"{IMG_BASE}p{img_code}.png"
+                    name = f"{pl['first_name']} {pl['second_name']}".split()[-1]
+                    pts = live_pts.get(p['element'], 0)
+                    cap = "captain" if p['is_captain'] else ""
+                    st.markdown(f"""
+                    <div class='player-pos' style='left:{x}%; top:{y}%; transform:translate(-50%,-50%);'>
+                        <img src='{img}' class='player-img {cap}' onerror="this.src='https://via.placeholder.com/40/0057B8/FFFFFF?text=?';">
+                        <div style='font-size:10px;'>{name}</div>
+                        <div style='font-size:11px; color:#10b981;'>{pts}</div>
+                    </div>
+                    """, True)
+                st.markdown("</div>", True)
+                
+                # Bench
+                st.markdown("<div class='bench-row'>", True)
+                for p in bench:
+                    pl = players[p['element']]
+                    img_code = pl['photo'].replace('.jpg', '')
+                    img = f"{IMG_BASE}p{img_code}.png"
+                    name = f"{pl['first_name']} {pl['second_name']}".split()[-1]
+                    st.markdown(f"""
+                    <div class='bench-player'>
+                        <img src='{img}' class='player-img' style='width:35px;height:35px;' onerror="this.src='https://via.placeholder.com/35/334155/94a3b8?text=?';">
+                        <div style='font-size:10px; margin-top:2px;'>{name}</div>
+                    </div>
+                    """, True)
+                st.markdown("</div>", True)
+                
+            except:
+                st.write("Squad not available")
+            
+            st.markdown("</div>", True)
 
-# === SQUAD WITH PHOTOS ===
-if 'selected' in st.session_state:
-    entry_id = st.session_state.selected
-    player = next(p for p in standings if p['entry'] == entry_id)
-    picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
-    picks = picks_data['picks']
-    chip = picks_data.get('active_chip')
-    
-    st.markdown(f"<h2 style='text-align:center; color:#f43f5e; margin:30px 0 10px;'>Squad: {player['entry_name']}</h2>", True)
-    if chip:
-        st.markdown(f"<p style='text-align:center; margin-bottom:20px;'><span class='chip'>{chip.upper()}</span></p>", True)
-    
-    starters = [pk for pk in picks if pk['position'] <= 11]
-    bench = [pk for pk in picks if pk['position'] > 11]
-    
-    # Starters
-    cols = st.columns(5)
-    for i, pk in enumerate(starters):
-        with cols[i % 5]:
-            pl = players.get(pk['element'], {})
-            code = pl.get('photo', 'p0.jpg').replace('.jpg', '')
-            img = f"{IMG_BASE}p{code}.png"
-            name = f"{pl.get('first_name','')} {pl.get('second_name','')}".strip()
-            pts = live_pts.get(pk['element'], 0)
-            mult = pk['multiplier']
-            cap = "captain" if pk['is_captain'] else ""
-            st.markdown(f"""
-            <div style='text-align:center; margin:15px 0;'>
-                <img src='{img}' class='player-img {cap}' onerror="this.src='https://via.placeholder.com/50/1e293b/f43f5e?text=?';">
-                <div style='margin-top:6px; font-size:13px; font-weight:600;'>{name}</div>
-                <div style='color:#10b981; font-weight:700; font-size:14px;'>{pts} × {mult}</div>
-            </div>
-            """, True)
-    
-    # Bench
-    st.markdown("**Bench**", unsafe_allow_html=True)
-    cols = st.columns(4)
-    for i, pk in enumerate(bench):
-        with cols[i % 4]:
-            pl = players.get(pk['element'], {})
-            code = pl.get('photo', 'p0.jpg').replace('.jpg', '')
-            img = f"{IMG_BASE}p{code}.png"
-            name = f"{pl.get('first_name','')} {pl.get('second_name','')}".strip()
-            st.markdown(f"""
-            <div style='text-align:center; opacity:0.6; margin:10px 0;'>
-                <img src='{img}' class='player-img' onerror="this.src='https://via.placeholder.com/50/334155/94a3b8?text=?';">
-                <div style='margin-top:6px; font-size:12px;'>{name}</div>
-            </div>
-            """, True)
-    
-    if st.button("Close Squad"):
-        del st.session_state.selected
+# Footer
+st.markdown(f"""
+<div style='text-align:center; margin:20px 0; padding:15px; background:#0057B8; border-radius:12px; color:#FFF; font-size:12px;'>
+    🏆 Leader: {standings[0]['entry_name']} – {standings[0]['total']} pts | GW {gw} | Updated: {time.strftime('%H:%M:%S')}
+</div>
+""", True)
 
-# === FOOTER ===
-st.markdown("---")
-st.markdown(f"<div style='text-align:center; color:#94a3b8; font-size:14px;'>Gameweek {gw} • Updated: {time.strftime('%H:%M:%S')}</div>", True)
-
-time.sleep(refresh)
+time.sleep(90)
 st.rerun()
