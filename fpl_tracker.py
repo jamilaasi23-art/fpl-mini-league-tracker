@@ -1,184 +1,167 @@
 import streamlit as st
 import requests
 import time
-import json
 
 # === CONFIG ===
-st.set_page_config(page_title="ايد مين بطيز مين", layout="wide")
+st.set_page_config(page_title="إيد مين بطيز مين", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""
 <style>
-    .main {background: #0e1117; color: #fafafa;}
-    .stApp {background: #0e1117;}
-    .stButton>button {background: #ff4b4b; color: white; border-radius: 8px;}
-    .stText {color: #cccccc;}
-    .highlight {background: linear-gradient(90deg, #1e3a8a, #1e40af); padding: 12px; border-radius: 10px; margin: 8px 0; border-left: 6px solid gold;}
-    .top3 {background: #1a1a2e; border-left: 6px solid #f59e0b;}
-    .squad {background: #16213e; padding: 15px; border-radius: 10px; border: 1px solid #334155;}
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    .main {background: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif;}
+    .title {font-size: 48px; text-align: center; font-weight: 700; 
+            background: linear-gradient(90deg, #f43f5e, #fbbf24); -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; margin: 20px 0;}
+    .logo {display: block; margin: 0 auto 10px; height: 80px; border-radius: 12px;}
+    .card {background: #1e293b; border-radius: 12px; padding: 16px; margin: 12px 0; 
+           border: 1px solid #334155; transition: all 0.2s;}
+    .card:hover {border-color: #f43f5e; transform: translateY(-2px);}
+    .rank {font-size: 24px; font-weight: 700; color: #fbbf24;}
+    .top1 {background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000;}
+    .top2 {background: #94a3b8;}
+    .top3 {background: #f97316;}
+    .player-img {width: 50px; height: 50px; border-radius: 50%; object-fit: cover; 
+                 border: 2px solid #475569;}
+    .captain {border: 3px solid #fbbf24 !important;}
+    .chip {background: #dc2626; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;}
+    .stButton>button {background: #f43f5e; color: white; border-radius: 8px; font-weight: 600;}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align:center; color:#ff4b4b; font-size:52px; text-shadow: 2px 2px 8px #000;'>ايد مين بطيز مين</h1>", True)
+# === LOGO (CHANGE THIS URL) ===
+LOGO_URL = "https://via.placeholder.com/300x80/1e293b/f43f5e?text=Your+Logo"  # ← REPLACE THIS
+st.markdown(f"<img src='{LOGO_URL}' class='logo'>", unsafe_allow_html=True)
+st.markdown("<h1 class='title'>إيد مين بطيز مين</h1>", True)
 
 LEAGUE_ID = 443392
 BASE_URL = "https://fantasy.premierleague.com/api/"
-EMOJI = {1: "🥇", 2: "🥈", 3: "🥉", "BB": "🪄", "TC": "3️⃣", "FH": "🔄", "WC": "🎭"}
+IMG_BASE = "https://resources.premierleague.com/premierleague/photos/players/110x140/"
 
-# === CACHING ===
-@st.cache_data(ttl=55)
-def get_bootstrap():
-    return requests.get(f"{BASE_URL}bootstrap-static/").json()
-
+# === DATA ===
 @st.cache_data(ttl=60)
-def get_standings():
-    url = f"{BASE_URL}leagues-classic/{LEAGUE_ID}/standings/"
+def get_all():
     try:
-        return requests.get(url).json()['standings']['results']
+        # Standings
+        standings = requests.get(f"{BASE_URL}leagues-classic/{LEAGUE_ID}/standings/").json()['standings']['results']
+        # Bootstrap
+        boot = requests.get(f"{BASE_URL}bootstrap-static/").json()
+        gw = next(e['id'] for e in boot['events'] if e['is_current'])
+        live = requests.get(f"{BASE_URL}event/{gw}/live/").json()
+        players = {p['id']: p for p in boot['elements']}
+        return standings, gw, live, players
     except:
-        return []
+        return [], 1, {}, {}
 
-@st.cache_data(ttl=60)
-def get_current_gw():
-    data = get_bootstrap()
-    for e in data['events']:
-        if e['is_current']:
-            return e['id']
-    return 1
-
-@st.cache_data(ttl=60)
-def get_live_gw(gw):
-    return requests.get(f"{BASE_URL}event/{gw}/live/").json()
-
-@st.cache_data(ttl=60)
-def get_picks(entry_id, gw):
-    url = f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/"
-    try:
-        data = requests.get(url).json()
-        return data['picks'], data.get('active_chip')
-    except:
-        return [], None
-
-# === INIT ===
-if 'player_names' not in st.session_state:
-    st.session_state.player_names = {}
-if 'live_points' not in st.session_state:
-    st.session_state.live_points = {}
-
-bootstrap = get_bootstrap()
-player_map = {p['id']: f"{p['first_name']} {p['second_name']}" for p in bootstrap['elements']}
-gw = get_current_gw()
-live_data = get_live_gw(gw)
-standings = get_standings()
-
-# === SIDEBAR ===
-refresh = st.sidebar.slider("🔄 Refresh (sec)", 30, 300, 60)
-if st.sidebar.button("🔥 Refresh Now"):
-    st.rerun()
-st.sidebar.markdown("---")
-st.sidebar.markdown("**🔔 Alerts**")
-alerts = st.sidebar.checkbox("Goal = Browser Alert", value=True)
-
-# === MAIN ===
-with st.spinner("جاري تحميل الدوري..."):
-    if not standings:
-        st.error("❌ No connection or invalid league ID")
-        st.stop()
-
-    # Update live points
-    for explain in live_data['elements']:
-        pid = explain['id']
-        pts = explain['stats']['total_points']
-        st.session_state.live_points[pid] = pts
-
-    for player in standings:
-        rank = player['rank']
-        name = player['player_name']
-        team = player['entry_name']
-        total = player['total']
-        entry_id = player['entry']
-        gw_pts = player['event_total']
-
-        # Live change
-        try:
-            picks, chip = get_picks(entry_id, gw)
-            live_total = sum(
-                st.session_state.live_points.get(p['element'], 0) * p['multiplier']
-                for p in picks
-            )
-            change = live_total - gw_pts
-            change_str = f" **(+{change})**" if change > 0 else f" **({change})**" if change < 0 else ""
-        except:
-            change_str = ""
-
-        # Rank emoji
-        rank_emoji = EMOJI.get(rank, f"#{rank}")
-
-        # Chip
-        chip_emoji = f" {EMOJI.get(chip, '')}" if chip else ""
-
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            if rank <= 3:
-                st.markdown(f"<div class='top3'><b>{rank_emoji} {name}</b> | **{team}** | **{total}** pts | GW: **{gw_pts}{change_str}**{chip_emoji}</div>", True)
-            else:
-                st.markdown(f"<div class='highlight'><b>{rank_emoji} {name}</b> | **{team}** | **{total}** pts | GW: **{gw_pts}{change_str}**{chip_emoji}</div>", True)
-        with col2:
-            if st.button("Squad", key=f"btn_{entry_id}"):
-                st.session_state.selected = entry_id
-
-    # === SQUAD VIEW ===
-    if 'selected' in st.session_state:
-        entry_id = st.session_state.selected
-        player = next(p for p in standings if p['entry'] == entry_id)
-        st.markdown(f"<div class='squad'><h3>👥 Squad: **{player['entry_name']}**</h3>", True)
-
-        picks, chip = get_picks(entry_id, gw)
-        if picks:
-            if chip:
-                st.markdown(f"**🪄 Active Chip: {chip.upper()} {EMOJI.get(chip, '')}**")
-
-            starters = [p for p in picks if p['position'] <= 11]
-            bench = [p for p in picks if p['position'] > 11]
-
-            st.markdown("**⚡ Starters**")
-            for p in starters:
-                pid = p['element']
-                name = player_map.get(pid, f"Player {pid}")
-                mult = p['multiplier']
-                live_pt = st.session_state.live_points.get(pid, 0)
-                caption = " (C) 👑" if p['is_captain'] else " (VC)" if p['is_vice_captain'] else ""
-                st.markdown(f"• **{name}**{caption} ×**{mult}** → **{live_pt}** pts")
-
-            st.markdown("**🪑 Bench**")
-            for p in bench:
-                name = player_map.get(p['element'], f"Player {p['element']}")
-                st.markdown(f"• {name}")
-
-            # Export button
-            export_data = {
-                "team": player['entry_name'],
-                "total": player['total'],
-                "gw_points": player['event_total'],
-                "squad": [player_map.get(p['element'], "Unknown") for p in picks]
-            }
-            st.download_button("📥 Export to JSON", data=json.dumps(export_data, indent=2), file_name=f"{team}_squad.json")
-
-        else:
-            st.info("No squad data yet (GW not started).")
-
-        if st.button("✖ Close"):
-            del st.session_state.selected
-        st.markdown("</div>", True)
-
-# === FOOTER ===
-leader = standings[0]
-st.markdown("---")
-st.markdown(f"**🏆 Leader:** **{leader['entry_name']}** – **{leader['total']}** pts")
-st.caption(f"Gameweek {gw} • Updated: {time.strftime('%H:%M:%S')}")
-
-# === ALERTS ===
-if alerts and change_str:
-    st.toast(f"Goal! {team} +{change}", icon="⚽")
+standings, gw, live, players = get_all()
+live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
 # === REFRESH ===
+refresh = st.sidebar.slider("Refresh", 30, 300, 60)
+if st.sidebar.button("Refresh"):
+    st.rerun()
+
+# === TABLE ===
+if not standings:
+    st.error("No data")
+    st.stop()
+
+for p in standings:
+    rank = p['rank']
+    name = p['player_name']
+    team = p['entry_name']
+    total = p['total']
+    entry_id = p['entry']
+    
+    # Live GW
+    try:
+        picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
+        picks = picks_data['picks']
+        chip = picks_data.get('active_chip')
+        gw_live = sum(live_pts.get(pk['element'], 0) * pk['multiplier'] for pk in picks)
+        change = gw_live - p['event_total']
+        change_str = f"<span style='color:#10b981; font-weight:600'> (+{change})</span>" if change > 0 else \
+                     f"<span style='color:#ef4444; font-weight:600'> ({change})</span>" if change < 0 else ""
+    except:
+        change_str = ""
+        chip = None
+
+    rank_class = "top1" if rank == 1 else "top2" if rank == 2 else "top3" if rank == 3 else ""
+    st.markdown(f"""
+    <div class='card {rank_class}'>
+        <div style='display:flex; justify-content:space-between; align-items:center;'>
+            <div>
+                <span class='rank'>#{rank}</span> 
+                <b style='font-size:18px; margin-left:8px;'>{name}</b>
+            </div>
+            <div style='text-align:right;'>
+                <div style='font-size:20px; font-weight:700;'>{total}</div>
+                <div style='font-size:14px; color:#94a3b8;'>
+                    GW: <b>{p['event_total']}</b>{change_str} {f"<span class='chip'>{chip.upper()}</span>" if chip else ""}
+                </div>
+            </div>
+        </div>
+        <div style='margin-top:12px; font-weight:600; color:#e2e8f0;'>{team}</div>
+    </div>
+    """, True)
+    
+    if st.button("View Squad", key=f"v_{entry_id}"):
+        st.session_state.selected = entry_id
+
+# === SQUAD WITH PHOTOS ===
+if 'selected' in st.session_state:
+    entry_id = st.session_state.selected
+    player = next(p for p in standings if p['entry'] == entry_id)
+    picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
+    picks = picks_data['picks']
+    chip = picks_data.get('active_chip')
+    
+    st.markdown(f"<h2 style='text-align:center; color:#f43f5e; margin:30px 0 10px;'>Squad: {player['entry_name']}</h2>", True)
+    if chip:
+        st.markdown(f"<p style='text-align:center; margin-bottom:20px;'><span class='chip'>{chip.upper()}</span></p>", True)
+    
+    starters = [pk for pk in picks if pk['position'] <= 11]
+    bench = [pk for pk in picks if pk['position'] > 11]
+    
+    # Starters
+    cols = st.columns(5)
+    for i, pk in enumerate(starters):
+        with cols[i % 5]:
+            pl = players.get(pk['element'], {})
+            code = pl.get('photo', 'p0.jpg').replace('.jpg', '')
+            img = f"{IMG_BASE}p{code}.png"
+            name = f"{pl.get('first_name','')} {pl.get('second_name','')}".strip()
+            pts = live_pts.get(pk['element'], 0)
+            mult = pk['multiplier']
+            cap = "captain" if pk['is_captain'] else ""
+            st.markdown(f"""
+            <div style='text-align:center; margin:15px 0;'>
+                <img src='{img}' class='player-img {cap}' onerror="this.src='https://via.placeholder.com/50/1e293b/f43f5e?text=?';">
+                <div style='margin-top:6px; font-size:13px; font-weight:600;'>{name}</div>
+                <div style='color:#10b981; font-weight:700; font-size:14px;'>{pts} × {mult}</div>
+            </div>
+            """, True)
+    
+    # Bench
+    st.markdown("**Bench**", unsafe_allow_html=True)
+    cols = st.columns(4)
+    for i, pk in enumerate(bench):
+        with cols[i % 4]:
+            pl = players.get(pk['element'], {})
+            code = pl.get('photo', 'p0.jpg').replace('.jpg', '')
+            img = f"{IMG_BASE}p{code}.png"
+            name = f"{pl.get('first_name','')} {pl.get('second_name','')}".strip()
+            st.markdown(f"""
+            <div style='text-align:center; opacity:0.6; margin:10px 0;'>
+                <img src='{img}' class='player-img' onerror="this.src='https://via.placeholder.com/50/334155/94a3b8?text=?';">
+                <div style='margin-top:6px; font-size:12px;'>{name}</div>
+            </div>
+            """, True)
+    
+    if st.button("Close Squad"):
+        del st.session_state.selected
+
+# === FOOTER ===
+st.markdown("---")
+st.markdown(f"<div style='text-align:center; color:#94a3b8; font-size:14px;'>Gameweek {gw} • Updated: {time.strftime('%H:%M:%S')}</div>", True)
+
 time.sleep(refresh)
 st.rerun()
