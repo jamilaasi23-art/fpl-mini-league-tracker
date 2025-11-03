@@ -20,18 +20,19 @@ st.markdown("""
     .gw {font-size: 10px; color: #10B981;}
     .gw-down {color: #EF4444;}
     .chip {font-size: 9px; padding: 1px 5px; background: #E90052; color: #FFF; border-radius: 8px; margin-left: 3px;}
-    .pitch {background: #1A5F3D; height: 300px; position: relative; border-radius: 10px; margin: 8px 0; 
+    .pitch {background: #1A5F3D; height: 360px; position: relative; border-radius: 10px; margin: 8px 0; 
             border: 2px solid #30363D; overflow: hidden;}
-    .player-pos {position: absolute; width: 44px; text-align: center; color: #FFF; font-size: 9px; 
-                 font-weight: 700; text-shadow: 1px 1px 2px #000; transform: translate(-50%,-50%);}
-    .player-circle {width: 32px; height: 32px; background: #0057B8; color: #FFF; border-radius: 50%; 
-                    margin: 0 auto 2px; display: flex; align-items: center; justify-content: center; 
-                    font-size: 10px; font-weight: 700; border: 2px solid #FFF;}
-    .captain {border: 2.5px solid #FFD700 !important; background: #FFD700 !important; color: #000 !important;}
-    .bench-row {display: flex; justify-content: center; gap: 6px; margin-top: 6px;}
-    .bench-player {text-align: center; width: 50px; opacity: 0.7; font-size: 9px;}
-    .bench-circle {width: 28px; height: 28px; background: #30363D; color: #AAA; border-radius: 50%; 
-                   margin: 0 auto 2px; display: flex; align-items: center; justify-content: center; 
+    .player-pos {position: absolute; text-align: center; color: #FFF; font-size: 11px; 
+                 font-weight: 700; text-shadow: 1px 1px 2px #000; width: 80px;}
+    .player-circle {width: 38px; height: 38px; background: #0057B8; color: #FFF; border-radius: 50%; 
+                    margin: 0 auto 4px; display: flex; align-items: center; justify-content: center; 
+                    font-size: 9px; font-weight: 700; border: 2px solid #FFF;}
+    .captain {border: 3px solid #FFD700 !important; background: #FFD700 !important; color: #000 !important;}
+    .player-name {font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70px;}
+    .bench-row {display: flex; justify-content: center; gap: 8px; margin-top: 8px; flex-wrap: wrap;}
+    .bench-player {text-align: center; width: 60px; opacity: 0.7; font-size: 10px;}
+    .bench-circle {width: 32px; height: 32px; background: #30363D; color: #AAA; border-radius: 50%; 
+                   margin: 0 auto 3px; display: flex; align-items: center; justify-content: center; 
                    font-size: 9px; border: 1px solid #555;}
     .collapsible {background: #161B22; padding: 6px; border-radius: 6px; margin: 2px 0; color: #FFF; font-size: 11px;}
     .stButton>button {background: #0057B8; color: #FFF; font-size: 10px; padding: 3px 6px; border-radius: 6px;}
@@ -61,19 +62,23 @@ def get_data():
 standings, gw, live, players = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
-# === FORMATION COORDINATES (OFFICIAL FPL STYLE) ===
-FORMATION = {
-    1: {"GK": [(50, 85)]},
-    3: {"DEF": [(25, 70), (50, 70), (75, 70)]},
-    4: {"DEF": [(20, 70), (40, 70), (60, 70), (80, 70)]},
-    5: {"DEF": [(15, 70), (30, 70), (50, 70), (70, 70), (85, 70)]},
-    2: {"MID": [(35, 50), (65, 50)]},
-    3: {"MID": [(25, 50), (50, 50), (75, 50)]},
-    4: {"MID": [(20, 50), (40, 50), (60, 50), (80, 50)]},
-    5: {"MID": [(15, 50), (35, 50), (50, 50), (65, 50), (85, 50)]},
-    1: {"FWD": [(50, 25)]},
-    2: {"FWD": [(35, 25), (65, 25)]},
-    3: {"FWD": [(25, 25), (50, 25), (75, 25)]}
+# === VERTICAL FORMATION COORDINATES (OFFICIAL FPL STYLE) ===
+VERTICAL_POS = {
+    # GK
+    1: [(50, 88)],
+    # DEF (vertical line at x=50)
+    3: [(50, 72), (50, 66), (50, 60)],
+    4: [(50, 75), (50, 68), (50, 61), (50, 54)],
+    5: [(50, 78), (50, 71), (50, 64), (50, 57), (50, 50)],
+    # MID (vertical)
+    2: [(50, 45), (50, 38)],
+    3: [(50, 48), (50, 41), (50, 34)],
+    4: [(50, 50), (50, 43), (50, 36), (50, 29)],
+    5: [(50, 52), (50, 45), (50, 38), (50, 31), (50, 24)],
+    # FWD (vertical)
+    1: [(50, 18)],
+    2: [(50, 20), (50, 14)],
+    3: [(50, 22), (50, 16), (50, 10)]
 }
 
 # === MAIN LOOP ===
@@ -134,17 +139,18 @@ for player in standings:
                     pos = pl['element_type']
                     idx = sum(1 for s in starters if players[s['element']]['element_type'] == pos and starters.index(s) < starters.index(p))
                     try:
-                        coords = FORMATION[pos_count[pos]][["GK","DEF","MID","FWD"][pos-1]][idx]
+                        x, y = VERTICAL_POS[pos_count[pos]][idx]
                     except:
-                        coords = (50, 50)
-                    x, y = coords
-                    name = pl['second_name'][:3].upper()
+                        x, y = 50, 50
+                    full_name = pl['second_name']
+                    short_name = full_name if len(full_name) <= 10 else full_name[:8] + "."
                     pts = live_pts.get(p['element'], 0)
                     cap = "captain" if p['is_captain'] else ""
                     st.markdown(f"""
-                    <div class='player-pos' style='left:{x}%; top:{y}%;'>
-                        <div class='player-circle {cap}'>{name}</div>
-                        <div style='color:#10B981; font-weight:700;'>{pts}</div>
+                    <div class='player-pos' style='left:{x}%; top:{y}%; transform: translateX(-50%);'>
+                        <div class='player-circle {cap}'>{pl['web_name'][:3].upper()}</div>
+                        <div class='player-name'>{short_name}</div>
+                        <div style='color:#10B981; font-weight:700; font-size:12px;'>{pts}</div>
                     </div>
                     """, True)
                 st.markdown("</div>", True)
@@ -153,10 +159,11 @@ for player in standings:
                 st.markdown("<div class='bench-row'>", True)
                 for p in picks[11:]:
                     pl = players[p['element']]
-                    name = pl['second_name'][:3].upper()
+                    short_name = pl['second_name'] if len(pl['second_name']) <= 10 else pl['second_name'][:8] + "."
                     st.markdown(f"""
                     <div class='bench-player'>
-                        <div class='bench-circle'>{name}</div>
+                        <div class='bench-circle'>{pl['web_name'][:3].upper()}</div>
+                        <div>{short_name}</div>
                     </div>
                     """, True)
                 st.markdown("</div>", True)
