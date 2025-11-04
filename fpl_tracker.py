@@ -1,11 +1,6 @@
 import streamlit as st
 import requests
 import time
-from streamlit.components.v1
-```python
-import streamlit as st
-import requests
-import time
 from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
@@ -26,12 +21,12 @@ def render_formation(picks, players, live_pts, teams):
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
     
-    # === MAX VERTICAL SPREAD (ULTRA-TALL) ===
+    # === MAX VERTICAL SPREAD ===
     rows = [
-        ("FWD", fwds, 8),    # 8%
-        ("MID", mids, 28),   # 28%
-        ("DEF", defs, 50),   # 50%
-        ("GK",  gk,   72)    # 72%
+        ("FWD", fwds, 8),
+        ("MID", mids, 28),
+        ("DEF", defs, 50),
+        ("GK",  gk,   72)
     ]
     
     html_content = """
@@ -39,16 +34,16 @@ def render_formation(picks, players, live_pts, teams):
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
     .collapsible {
         background: #1A5F3D;
-        height: 540px;               /* ULTRA-TALL */
+        height: 540px;
         position: relative;
         border-radius: 18px;
         border: 2px solid #30363D;
         overflow: hidden;
         font-family: 'Inter', sans-serif;
         margin: 8px 0;
-        width: 100vw;                /* FULL WIDTH */
+        width: 100vw;
         max-width: 100vw;
-        margin-left: calc(-50vw + 50%);  /* CENTER & REMOVE SIDE MARGINS */
+        margin-left: calc(-50vw + 50%);
         margin-right: calc(-50vw + 50%);
         left: 50%;
         right: 50%;
@@ -153,7 +148,6 @@ def render_formation(picks, players, live_pts, teams):
     <div class="collapsible">
     """
     
-    # === STARTERS (MAX SPREAD) ===
     for pos, data, top_pct in rows:
         if not data: continue
         html_content += f'<div class="row-container" style="top:{top_pct}%;">'
@@ -171,7 +165,6 @@ def render_formation(picks, players, live_pts, teams):
             """
         html_content += "</div>"
     
-    # === BENCH WITH POINTS ===
     html_content += '<div class="bench">'
     for p in bench:
         pl = players[p['element']]
@@ -188,7 +181,7 @@ def render_formation(picks, players, live_pts, teams):
     
     return html_content
 
-# === MAIN ===
+# === MAIN STYLES ===
 st.markdown("""
 <style>
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
@@ -263,17 +256,17 @@ for player in standings:
         <span class='points'>{total}</span><span class='gw-label'>Total</span>
         {change_str}{chip_str}
     </div>
-    """, True)
+    """, unsafe_allow_html=True)
     
     with st.expander("", expanded=False):
         formation_html = render_formation(picks, players, live_pts, teams)
-        html(formation_html, height=560)  # MATCHES ULTRA-TALL
+        html(formation_html, height=560)
 
 st.markdown(f"""
 <div style='text-align:center; margin:8px 0; padding:6px; background:#0057B8; border-radius:6px; color:#FFF; font-size:10px;'>
     GW {gw} • {time.strftime('%H:%M:%S')}
 </div>
-""", True)
+""", unsafe_allow_html=True)
 
 time.sleep(60)
 st.rerun()
