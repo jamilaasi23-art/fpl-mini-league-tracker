@@ -5,7 +5,7 @@ from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="centered")
 
-# === DYNAMIC CENTERING + WIDE BENCH ===
+# === DYNAMIC + NO OVERLAP + WHITE POINTS ===
 def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
@@ -21,12 +21,11 @@ def render_formation(picks, players, live_pts, teams):
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
     
-    # === DYNAMIC ROWS ===
     rows = [
-        ("FWD", fwds, 18),
-        ("MID", mids, 38),
-        ("DEF", defs, 58),
-        ("GK",  gk,   78)
+        ("FWD", fwds, 16),
+        ("MID", mids, 34),
+        ("DEF", defs, 52),
+        ("GK",  gk,   70)
     ]
     
     html_content = """
@@ -47,81 +46,81 @@ def render_formation(picks, players, live_pts, teams):
         left: 0; right: 0;
         display: flex;
         justify-content: center;
-        gap: 18px;
-        padding: 0 12px;
-        transform: translateX(0);
+        gap: 20px;
+        padding: 0 14px;
     }
     .player {
-        width: 72px;
+        width: 76px;
         text-align: center;
-        font-size: 9.5px;
+        font-size: 9.8px;
         color: #FFF;
         font-weight: 700;
         text-shadow: 1px 1px 2px #000;
     }
     .circle {
-        width: 38px;
-        height: 38px;
+        width: 40px;
+        height: 40px;
         background: #0057B8;
         color: #FFF;
         border-radius: 50%;
-        margin: 0 auto 3px;
+        margin: 0 auto 4px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 9px;
+        font-size: 9.5px;
         font-weight: 700;
-        border: 2.5px solid #FFF;
+        border: 3px solid #FFF;
     }
     .captain {
-        border: 3px solid #FFD700 !important;
+        border: 3.5px solid #FFD700 !important;
         background: #FFD700 !important;
         color: #000 !important;
     }
     .name {
-        font-size: 9.5px;
+        font-size: 9.8px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 70px;
-        margin: 0 auto;
+        max-width: 74px;
+        margin: 0 auto 2px;
     }
     .pts {
-        color: #10B981;
+        color: #FFFFFF !important;
         font-weight: 700;
-        font-size: 12.5px;
+        font-size: 14px !important;
         margin-top: 2px;
+        text-shadow: 1px 1px 3px #000;
     }
     .bench {
         position: absolute;
-        bottom: 8px;
+        bottom: 6px;
         left: 0;
         right: 0;
         display: flex;
         justify-content: center;
-        gap: 22px;
-        padding: 0 16px;
+        gap: 24px;
+        padding: 0 18px;
         overflow-x: auto;
         white-space: nowrap;
     }
     .bench-item {
         text-align: center;
-        min-width: 68px;
-        opacity: 0.85;
-        font-size: 9.2px;
+        min-width: 72px;
+        opacity: 0.9;
+        font-size: 9.5px;
     }
     .bench-circle {
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         background: #30363D;
-        color: #AAA;
+        color: #DDD;
         border-radius: 50%;
         margin: 0 auto 2px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 8.5px;
-        border: 1.5px solid #555;
+        font-size: 9px;
+        border: 2px solid #666;
     }
     .locked {
         position: absolute;
@@ -135,10 +134,9 @@ def render_formation(picks, players, live_pts, teams):
     <div class="collapsible">
     """
     
-    # === DYNAMIC ROWS ===
+    # === STARTERS (PUSHED UP) ===
     for pos, data, top_pct in rows:
         if not data: continue
-        count = len(data)
         html_content += f'<div class="row-container" style="top:{top_pct}%;">'
         for p in data:
             pl = players[p['element']]
@@ -154,7 +152,7 @@ def render_formation(picks, players, live_pts, teams):
             """
         html_content += "</div>"
     
-    # === WIDE BENCH ===
+    # === BENCH (BOTTOM, NO OVERLAP) ===
     html_content += '<div class="bench">'
     for p in bench:
         pl = players[p['element']]
@@ -162,7 +160,6 @@ def render_formation(picks, players, live_pts, teams):
         html_content += f"""
         <div class="bench-item">
             <div class="bench-circle">{team_code}</div>
-            <div>{pl['second_name']}</div>
         </div>
         """
     html_content += "</div></div>"
@@ -185,7 +182,7 @@ st.markdown("""
     .gw-label {color: #888; font-size: 9px; margin: 0 4px;}
     .gw {font-size: 10px; color: #10B981;}
     .gw-down {color: #EF4444;}
-    .chip {font-size: 8px; padding: 1px 4px; background: #E90052; color: #FFF; border-radius: 6px; margin-left: 3px;}
+    .chip {font-size: 8px; padding: 1px 4px; background:#E90052; color:#FFF; border-radius:6px; margin-left:3px;}
 </style>
 """, unsafe_allow_html=True)
 
