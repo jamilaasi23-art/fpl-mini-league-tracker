@@ -5,7 +5,7 @@ from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
-# === 580px PITCH + JERSEY NAME + CAPTAIN PREVIEW ===
+# === 580px PITCH + JERSEY NAME + CAPTAIN UNDER NAME ===
 def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
@@ -185,14 +185,14 @@ def render_formation(picks, players, live_pts, teams):
     
     return html_content
 
-# === MAIN STYLES ===
+# === MAIN STYLES (TWO-LINE ROW, CAPTAIN UNDER NAME) ===
 st.markdown("""
 <style>
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
     .title {font-size: 20px; text-align: center; background: linear-gradient(90deg, #0057B8, #E90052); 
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 2px 0; font-weight: 700;}
-    .row {display: flex; flex-direction: column; padding: 8px; margin: 4px 0; 
-          background: #161B22; border-radius: 8px; border-left: 3px solid #30363D; font-size: 11.5px;}
+    .row {display: flex; flex-direction: column; padding: 6px 8px; margin: 4px 0; 
+          background: #161B22; border-radius: 6px; border-left: 3px solid #30363D; font-size: 11.5px;}
     .top1 {background: linear-gradient(135deg, #E90052, #0057B8) !important; color: #FFF !important; border-left-color: #FFD700;}
     .top2 {background: linear-gradient(135deg, #3D195B, #0057B8) !important; color: #FFF !important;}
     .top3 {background: linear-gradient(135deg, #E90052, #3D195B) !important; color: #FFF !important;}
@@ -203,8 +203,9 @@ st.markdown("""
     .gw {font-size: 10px; color: #10B981;}
     .gw-down {color: #EF4444;}
     .chip {font-size: 8px; padding: 1px 4px; background:#E90052; color:#FFF; border-radius:6px; margin-left:3px;}
-    .preview {display: flex; justify-content: space-between; font-size: 10px; margin-top: 2px; color: #AAA;}
-    .captain-label {color: #FFD700; font-weight: 700;}
+    .subline {display: flex; justify-content: space-between; align-items: center; font-size: 10px; margin-top: 2px; color: #AAA;}
+    .captain-info {color: #FFD700; font-weight: 700;}
+    .chip-info {color: #E90052; font-weight: 700;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -237,7 +238,7 @@ for player in standings:
     total = player['total']
     entry_id = player['entry']
     
-    change_str = chip_str = ""
+    change_str = ""
     picks = []
     captain_name = ""
     active_chip = ""
@@ -248,7 +249,6 @@ for player in standings:
         chip = picks_data.get('active_chip')
         if chip:
             active_chip = chip.upper()[:2]
-            chip_str = f"<span class='chip'>{active_chip}</span>"
         
         if picks:
             captain = next((p for p in picks if p['is_captain']), None)
@@ -263,7 +263,10 @@ for player in standings:
 
     row_class = "top1" if rank == 1 else "top2" if rank == 2 else "top3" if rank <= 3 else ""
     
-    # === MANAGER ROW WITH CAPTAIN + CHIP PREVIEW ===
+    # === TWO-LINE ROW: CAPTAIN & CHIP UNDER NAME, NEXT TO ARROW ===
+    captain_str = f"<span class='captain-info'>C: {captain_name}</span>" if captain_name else ""
+    chip_str = f"<span class='chip-info'>{active_chip}</span>" if active_chip else ""
+    
     st.markdown(f"""
     <div class='row {row_class}'>
         <div class='header'>
@@ -272,18 +275,18 @@ for player in standings:
             <span style='font-weight:600; min-width:95px;'>{team}</span>
             <span class='points'>{player['event_total']}</span><span class='gw-label'>GW</span>
             <span class='points'>{total}</span><span class='gw-label'>Total</span>
-            {change_str}{chip_str}
+            {change_str}
         </div>
-        <div class='preview'>
-            <span>{'<span class="captain-label">C:</span> ' + captain_name if captain_name else ''}</span>
-            <span>{active_chip if active_chip else ''}</span>
+        <div class='subline'>
+            <span>{captain_str} {chip_str}</span>
+            <span>Right arrow</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
     with st.expander("", expanded=False):
         formation_html = render_formation(picks, players, live_pts, teams)
-        html(formation_html, height=600)  # 580px + padding
+        html(formation_html, height=600)
 
 st.markdown(f"""
 <div style='text-align:center; margin:8px 0; padding:6px; background:#0057B8; border-radius:6px; color:#FFF; font-size:10px;'>
