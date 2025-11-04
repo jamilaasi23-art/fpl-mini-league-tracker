@@ -22,16 +22,59 @@ st.markdown("""
     .chip {font-size: 9px; padding: 1px 5px; background: #E90052; color: #FFF; border-radius: 8px; margin-left: 3px;}
     
     /* PERFECT PITCH + SPACING */
-    .pitch {background: #1A5F3D; height: 420px; position: relative; border-radius: 12px; margin: 12px 0; 
-            border: 2px solid #30363D; overflow: visible;}
-    .player-pos {position: absolute; text-align: center; width: 80px; font-size: 10px; color: #FFF; 
-                 font-weight: 700; text-shadow: 1px 1px 2px #000; transform: translateX(-50%);}
-    .player-circle {width: 42px; height: 42px; background: #0057B8; color: #FFF; border-radius: 50%; 
-                    margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; 
-                    font-size: 9px; font-weight: 700; border: 2.5px solid #FFF;}
-    .captain {border: 3px solid #FFD700 !important; background: #FFD700 !important; color: #000 !important;}
-    .player-name {font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75px;}
-    .player-pts {color: #10B981; font-weight: 700; font-size: 13px; margin-top: 2px;}
+    .pitch {
+        background: #1A5F3D;
+        height: 460px;
+        position: relative;
+        border-radius: 14px;
+        margin: 14px 0;
+        border: 3px solid #30363D;
+        overflow: visible !important;
+    }
+    .player-pos {
+        position: absolute;
+        width: 72px;
+        text-align: center;
+        font-size: 10px;
+        color: #FFF;
+        font-weight: 700;
+        text-shadow: 1px 1px 2px #000;
+        transform: translateX(-50%);
+        z-index: 10;
+    }
+    .player-circle {
+        width: 38px;
+        height: 38px;
+        background: #0057B8;
+        color: #FFF;
+        border-radius: 50%;
+        margin: 0 auto 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 700;
+        border: 2.5px solid #FFF;
+    }
+    .captain {
+        border: 3px solid #FFD700 !important;
+        background: #FFD700 !important;
+        color: #000 !important;
+    }
+    .player-name {
+        font-size: 10.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 70px;
+        margin: 0 auto;
+    }
+    .player-pts {
+        color: #10B981;
+        font-weight: 700;
+        font-size: 13px;
+        margin-top: 3px;
+    }
     
     .bench-row {display: flex; justify-content: center; gap: 14px; margin-top: 12px; flex-wrap: wrap;}
     .bench-player {text-align: center; width: 65px; opacity: 0.7; font-size: 10px;}
@@ -65,18 +108,17 @@ def get_data():
 standings, gw, live, players = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
-# === DYNAMIC SPACING (OFFICIAL FPL) ===
-def get_positions(num_players, base_y, min_spacing=18):
-    if num_players == 1:
-        return [(50, base_y)]
-    start_x = 50 - (num_players - 1) * min_spacing / 2
-    return [(start_x + i * min_spacing, base_y) for i in range(num_players)]
+# === DYNAMIC SPACING (FIXED) ===
+def get_positions(num, base_y, spacing):
+    if num == 0: return []
+    start = 50 - (num - 1) * spacing / 2
+    return [(start + i * spacing, base_y) for i in range(num)]
 
 POS = {
-    "GK": lambda n: get_positions(n, 85),
-    "DEF": lambda n: get_positions(n, 68, 20),
-    "MID": lambda n: get_positions(n, 45, 22),
-    "FWD": lambda n: get_positions(n, 20, 25)
+    "GK": lambda n: get_positions(n, 78, 0) if n > 0 else [],
+    "DEF": lambda n: get_positions(n, 62, 16),
+    "MID": lambda n: get_positions(n, 40, 18),
+    "FWD": lambda n: get_positions(n, 18, 22)
 }
 
 # === MAIN LOOP ===
@@ -131,65 +173,21 @@ for player in standings:
                 
                 st.markdown("<div class='pitch'>", True)
                 
-                # GK
-                for i, p in enumerate(gk):
-                    pl = players[p['element']]
-                    x, y = POS["GK"](len(gk))[i]
-                    name = pl['second_name']
-                    pts = live_pts.get(p['element'], 0)
-                    cap = "captain" if p['is_captain'] else ""
-                    st.markdown(f"""
-                    <div class='player-pos' style='left:{x}%; top:{y}%;'>
-                        <div class='player-circle {cap}'>{pl['web_name'][:3].upper()}</div>
-                        <div class='player-name'>{name}</div>
-                        <div class='player-pts'>{pts}</div>
-                    </div>
-                    """, True)
-                
-                # DEF
-                for i, p in enumerate(defs):
-                    pl = players[p['element']]
-                    x, y = POS["DEF"](len(defs))[i]
-                    name = pl['second_name']
-                    pts = live_pts.get(p['element'], 0)
-                    cap = "captain" if p['is_captain'] else ""
-                    st.markdown(f"""
-                    <div class='player-pos' style='left:{x}%; top:{y}%;'>
-                        <div class='player-circle {cap}'>{pl['web_name'][:3].upper()}</div>
-                        <div class='player-name'>{name}</div>
-                        <div class='player-pts'>{pts}</div>
-                    </div>
-                    """, True)
-                
-                # MID
-                for i, p in enumerate(mids):
-                    pl = players[p['element']]
-                    x, y = POS["MID"](len(mids))[i]
-                    name = pl['second_name']
-                    pts = live_pts.get(p['element'], 0)
-                    cap = "captain" if p['is_captain'] else ""
-                    st.markdown(f"""
-                    <div class='player-pos' style='left:{x}%; top:{y}%;'>
-                        <div class='player-circle {cap}'>{pl['web_name'][:3].upper()}</div>
-                        <div class='player-name'>{name}</div>
-                        <div class='player-pts'>{pts}</div>
-                    </div>
-                    """, True)
-                
-                # FWD
-                for i, p in enumerate(fwds):
-                    pl = players[p['element']]
-                    x, y = POS["FWD"](len(fwds))[i]
-                    name = pl['second_name']
-                    pts = live_pts.get(p['element'], 0)
-                    cap = "captain" if p['is_captain'] else ""
-                    st.markdown(f"""
-                    <div class='player-pos' style='left:{x}%; top:{y}%;'>
-                        <div class='player-circle {cap}'>{pl['web_name'][:3].upper()}</div>
-                        <div class='player-name'>{name}</div>
-                        <div class='player-pts'>{pts}</div>
-                    </div>
-                    """, True)
+                # === RENDER ALL PLAYERS (FIXED) ===
+                for pos, data in [("GK", gk), ("DEF", defs), ("MID", mids), ("FWD", fwds)]:
+                    for i, p in enumerate(data):
+                        pl = players[p['element']]
+                        x, y = POS[pos](len(data))[i]
+                        name = pl['second_name']
+                        pts = live_pts.get(p['element'], 0)
+                        cap = "captain" if p['is_captain'] else ""
+                        st.markdown(f"""
+                        <div class='player-pos' style='left:{x}%; top:{y}%;'>
+                            <div class='player-circle {cap}'>{pl['web_name'][:3].upper()}</div>
+                            <div class='player-name'>{name}</div>
+                            <div class='player-pts'>{pts}</div>
+                        </div>
+                        """, True)
                 
                 st.markdown("</div>", True)
                 
