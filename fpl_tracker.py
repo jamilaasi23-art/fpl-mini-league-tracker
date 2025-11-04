@@ -3,9 +3,9 @@ import requests
 import time
 from streamlit.components.v1 import html
 
-st.set_page_config(page_title="إيد مين بطيز مين", layout="centered")
+st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
-# === DYNAMIC + NO OVERLAP + WHITE POINTS ===
+# === TALLER PITCH + BIG VERTICAL SPACING + BENCH POINTS ===
 def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
@@ -21,11 +21,12 @@ def render_formation(picks, players, live_pts, teams):
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
     
+    # === BIG VERTICAL SPACING (TALLER PITCH) ===
     rows = [
-        ("FWD", fwds, 16),
-        ("MID", mids, 34),
-        ("DEF", defs, 52),
-        ("GK",  gk,   70)
+        ("FWD", fwds, 10),   # 10%
+        ("MID", mids, 32),   # 32%
+        ("DEF", defs, 54),   # 54%
+        ("GK",  gk,   76)    # 76%
     ]
     
     html_content = """
@@ -33,94 +34,102 @@ def render_formation(picks, players, live_pts, teams):
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
     .collapsible {
         background: #1A5F3D;
-        height: 380px;
+        height: 460px;               /* TALLER PITCH */
         position: relative;
-        border-radius: 14px;
+        border-radius: 16px;
         border: 2px solid #30363D;
         overflow: hidden;
         font-family: 'Inter', sans-serif;
-        margin: 4px 0;
+        margin: 6px 0;
+        width: 100%;
+        max-width: 100%;
     }
     .row-container {
         position: absolute;
         left: 0; right: 0;
         display: flex;
         justify-content: center;
-        gap: 20px;
-        padding: 0 14px;
+        gap: 22px;
+        padding: 0 16px;
     }
     .player {
-        width: 76px;
+        width: 78px;
         text-align: center;
-        font-size: 9.8px;
+        font-size: 10px;
         color: #FFF;
         font-weight: 700;
         text-shadow: 1px 1px 2px #000;
     }
     .circle {
-        width: 40px;
-        height: 40px;
+        width: 42px;
+        height: 42px;
         background: #0057B8;
         color: #FFF;
         border-radius: 50%;
-        margin: 0 auto 4px;
+        margin: 0 auto 5px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 9.5px;
+        font-size: 10px;
         font-weight: 700;
         border: 3px solid #FFF;
     }
     .captain {
-        border: 3.5px solid #FFD700 !important;
+        border: 4px solid #FFD700 !important;
         background: #FFD700 !important;
         color: #000 !important;
     }
     .name {
-        font-size: 9.8px;
+        font-size: 10.2px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 74px;
-        margin: 0 auto 2px;
+        max-width: 76px;
+        margin: 0 auto 3px;
     }
     .pts {
         color: #FFFFFF !important;
         font-weight: 700;
-        font-size: 14px !important;
+        font-size: 15px !important;
         margin-top: 2px;
         text-shadow: 1px 1px 3px #000;
     }
     .bench {
         position: absolute;
-        bottom: 6px;
+        bottom: 8px;
         left: 0;
         right: 0;
         display: flex;
         justify-content: center;
-        gap: 24px;
-        padding: 0 18px;
+        gap: 28px;
+        padding: 0 20px;
         overflow-x: auto;
         white-space: nowrap;
     }
     .bench-item {
         text-align: center;
-        min-width: 72px;
+        min-width: 78px;
         opacity: 0.9;
-        font-size: 9.5px;
+        font-size: 9.8px;
     }
     .bench-circle {
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
         background: #30363D;
         color: #DDD;
         border-radius: 50%;
-        margin: 0 auto 2px;
+        margin: 0 auto 3px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 9px;
+        font-size: 9.5px;
         border: 2px solid #666;
+    }
+    .bench-pts {
+        color: #FFFFFF;
+        font-weight: 700;
+        font-size: 13px;
+        text-shadow: 1px 1px 2px #000;
     }
     .locked {
         position: absolute;
@@ -128,13 +137,13 @@ def render_formation(picks, players, live_pts, teams):
         left: 50%;
         transform: translate(-50%, -50%);
         color: #AAA;
-        font-size: 11px;
+        font-size: 12px;
     }
     </style>
     <div class="collapsible">
     """
     
-    # === STARTERS (PUSHED UP) ===
+    # === STARTERS (BIG SPACING) ===
     for pos, data, top_pct in rows:
         if not data: continue
         html_content += f'<div class="row-container" style="top:{top_pct}%;">'
@@ -152,14 +161,17 @@ def render_formation(picks, players, live_pts, teams):
             """
         html_content += "</div>"
     
-    # === BENCH (BOTTOM, NO OVERLAP) ===
+    # === BENCH WITH POINTS ===
     html_content += '<div class="bench">'
     for p in bench:
         pl = players[p['element']]
+        pts = live_pts.get(p['element'], 0)
         team_code = get_team_code(p['element'])
         html_content += f"""
         <div class="bench-item">
             <div class="bench-circle">{team_code}</div>
+            <div class="name">{pl['second_name']}</div>
+            <div class="bench-pts">{pts}</div>
         </div>
         """
     html_content += "</div></div>"
@@ -245,7 +257,7 @@ for player in standings:
     
     with st.expander("", expanded=False):
         formation_html = render_formation(picks, players, live_pts, teams)
-        html(formation_html, height=400)
+        html(formation_html, height=480)  # TALLER
 
 st.markdown(f"""
 <div style='text-align:center; margin:8px 0; padding:6px; background:#0057B8; border-radius:6px; color:#FFF; font-size:10px;'>
