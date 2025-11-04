@@ -21,6 +21,28 @@ def render_formation(picks, players, live_pts, teams):
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
     
+    # === GET CAPTAIN & CHIP FOR HEADER ===
+    captain_name = ""
+    active_chip = ""
+    if picks:
+        captain = next((p for p in picks if p['is_captain']), None)
+        if captain:
+            captain_name = players[captain['element']]['web_name']
+        # Chip is in picks_data, not picks
+        chip = picks[0].get('active_chip') if picks else None
+        if chip:
+            active_chip = chip.upper()[:2]
+
+    # === HEADER WITH CAPTAIN + CHIP (BEFORE OPENING) ===
+    header_html = ""
+    if captain_name or active_chip:
+        header_html = f"""
+        <div style='text-align:center; padding:6px 0; font-size:11px; color:#AAA; background:#0D1117;'>
+            {f'<span style="color:#FFD700; font-weight:700;">C: {captain_name}</span>' if captain_name else ''}
+            {f'<span style="color:#E90052; font-weight:700; margin-left:8px;">{active_chip}</span>' if active_chip else ''}
+        </div>
+        """
+
     rows = [
         ("FWD", fwds, 10),
         ("MID", mids, 23),
@@ -28,10 +50,10 @@ def render_formation(picks, players, live_pts, teams):
         ("GK",  gk,   54)
     ]
     
-    html_content = """
+    html_content = f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
-    .collapsible {
+    .collapsible {{
         background: #1A5F3D;
         height: 580px;
         position: relative;
@@ -47,24 +69,24 @@ def render_formation(picks, players, live_pts, teams):
         left: 50%;
         right: 50%;
         transform: translateX(-50%);
-    }
-    .row-container {
+    }}
+    .row-container {{
         position: absolute;
         left: 0; right: 0;
         display: flex;
         justify-content: center;
         gap: 18px;
         padding: 0 14px;
-    }
-    .player {
+    }}
+    .player {{
         width: 64px;
         text-align: center;
         font-size: 9.5px;
         color: #FFF;
         font-weight: 700;
         text-shadow: 1px 1px 2px #000;
-    }
-    .circle {
+    }}
+    .circle {{
         width: 23px;
         height: 23px;
         background: #0057B8;
@@ -77,28 +99,28 @@ def render_formation(picks, players, live_pts, teams):
         font-size: 8px;
         font-weight: 700;
         border: 2px solid #FFF;
-    }
-    .captain {
+    }}
+    .captain {{
         border: 3px solid #FFD700 !important;
         background: #0057B8 !important;
         color: #FFF !important;
-    }
-    .name {
+    }}
+    .name {{
         font-size: 9.5px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 62px;
         margin: 0 auto 2px;
-    }
-    .pts {
+    }}
+    .pts {{
         color: #FFFFFF !important;
         font-weight: 700;
         font-size: 13px !important;
         margin-top: 1px;
         text-shadow: 1px 1px 2px #000;
-    }
-    .bench {
+    }}
+    .bench {{
         position: absolute;
         bottom: 18px;
         left: 0;
@@ -109,14 +131,14 @@ def render_formation(picks, players, live_pts, teams):
         padding: 0 16px;
         overflow-x: auto;
         white-space: nowrap;
-    }
-    .bench-item {
+    }}
+    .bench-item {{
         text-align: center;
         min-width: 64px;
         opacity: 0.9;
         font-size: 9px;
-    }
-    .bench-circle {
+    }}
+    .bench-circle {{
         width: 21px;
         height: 21px;
         background: #30363D;
@@ -128,23 +150,24 @@ def render_formation(picks, players, live_pts, teams):
         justify-content: center;
         font-size: 7.5px;
         border: 1.5px solid #777;
-    }
-    .bench-pts {
+    }}
+    .bench-pts {{
         color: #FFFFFF;
         font-weight: 700;
         font-size: 12px;
         text-shadow: 1px 1px 2px #000;
-    }
-    .locked {
+    }}
+    .locked {{
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         color: #AAA;
         font-size: 14px;
-    }
+    }}
     </style>
     <div class="collapsible">
+    {header_html}
     """
     
     for pos, data, top_pct in rows:
@@ -182,27 +205,22 @@ def render_formation(picks, players, live_pts, teams):
     
     return html_content
 
-# === MAIN STYLES: WHITE PILLS, NO BROWN ===
+# === MAIN STYLES: COLORED ROW UNCHANGED ===
 st.markdown("""
 <style>
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
     .title {font-size: 20px; text-align: center; background: linear-gradient(90deg, #0057B8, #E90052); 
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 2px 0; font-weight: 700;}
-    .row {display: flex; flex-direction: column; padding: 6px 8px; margin: 2px 0; 
+    .row {display: flex; align-items: center; padding: 6px 8px; margin: 2px 0; 
           background: #161B22; border-radius: 6px; border-left: 3px solid #30363D; font-size: 11.5px;}
     .top1 {background: linear-gradient(135deg, #E90052, #0057B8) !important; color: #FFF !important; border-left-color: #FFD700;}
     .top2 {background: linear-gradient(135deg, #3D195B, #0057B8) !important; color: #FFF !important;}
     .top3 {background: linear-gradient(135deg, #E90052, #3D195B) !important; color: #FFF !important;}
-    .header {display: flex; align-items: center; gap: 6px;}
     .rank {font-weight: 700; font-size: 12px; min-width: 22px;}
     .points {font-weight: 700; font-size: 12px; min-width: 38px; text-align: right;}
     .gw-label {color: #888; font-size: 9px; margin: 0 4px;}
     .gw {font-size: 10px; color: #10B981;}
     .gw-down {color: #EF4444;}
-    .pill {font-size: 9.5px; padding: 3px 10px; border-radius: 16px; font-weight: 600; margin-right: 6px;}
-    .captain-pill {background: #FFF; color: #000;}
-    .chip-pill {background: #FFF; color: #000;}
-    .pills {display: flex; justify-content: center; gap: 8px; margin-top: 4px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -237,21 +255,11 @@ for player in standings:
     
     change_str = ""
     picks = []
-    captain_name = ""
-    active_chip = ""
     
     try:
         picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
         picks = picks_data.get('picks', [])
-        chip = picks_data.get('active_chip')
-        if chip:
-            active_chip = chip.replace('_', ' ').title()
-        
         if picks:
-            captain = next((p for p in picks if p['is_captain']), None)
-            if captain:
-                captain_name = players[captain['element']]['web_name']
-            
             gw_live = sum(live_pts.get(p['element'], 0) * p['multiplier'] for p in picks)
             change = gw_live - player['event_total']
             change_str = f"<span class='gw'>+{change}</span>" if change > 0 else f"<span class='gw-down'>{change}</span>" if change < 0 else ""
@@ -260,23 +268,15 @@ for player in standings:
 
     row_class = "top1" if rank == 1 else "top2" if rank == 2 else "top3" if rank <= 3 else ""
     
-    # === PILLS: WHITE, NO BROWN ===
-    captain_pill = f"<span class='pill captain-pill'>Captain</span>" if captain_name else ""
-    chip_pill = f"<span class='pill chip-pill'>{active_chip}</span>" if active_chip else ""
-    pills_html = f"<div class='pills'>{captain_pill}{chip_pill}</div>" if captain_pill or chip_pill else ""
-
-    # === ROW: COLORED TOP + WHITE PILLS BELOW ===
+    # === COLORED ROW: 100% UNCHANGED ===
     st.markdown(f"""
     <div class='row {row_class}'>
-        <div class='header'>
-            <span class='rank'>#{rank}</span>
-            <span style='flex:1; margin-left:5px;'>{name}</span>
-            <span style='font-weight:600; min-width:95px;'>{team}</span>
-            <span class='points'>{player['event_total']}</span><span class='gw-label'>GW</span>
-            <span class='points'>{total}</span><span class='gw-label'>Total</span>
-            {change_str}
-        </div>
-        {pills_html}
+        <span class='rank'>#{rank}</span>
+        <span style='flex:1; margin-left:5px;'>{name}</span>
+        <span style='font-weight:600; min-width:95px;'>{team}</span>
+        <span class='points'>{player['event_total']}</span><span class='gw-label'>GW</span>
+        <span class='points'>{total}</span><span class='gw-label'>Total</span>
+        {change_str}
     </div>
     """, unsafe_allow_html=True)
     
