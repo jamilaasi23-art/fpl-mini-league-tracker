@@ -5,8 +5,8 @@ from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
-# === 580px PITCH + JERSEY NAME ===
-def render_formation(picks, players, live_pts, teams):
+# === 580px PITCH + CAPTAIN/CHIP IN HEADER ===
+def render_formation(picks, players, live_pts, teams, picks_data):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
     
@@ -21,25 +21,24 @@ def render_formation(picks, players, live_pts, teams):
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
     
-    # === GET CAPTAIN & CHIP FOR HEADER ===
+    # === CAPTAIN & CHIP FROM picks_data ===
     captain_name = ""
     active_chip = ""
     if picks:
         captain = next((p for p in picks if p['is_captain']), None)
         if captain:
             captain_name = players[captain['element']]['web_name']
-        # Chip is in picks_data, not picks
-        chip = picks[0].get('active_chip') if picks else None
+        chip = picks_data.get('active_chip')
         if chip:
             active_chip = chip.upper()[:2]
 
-    # === HEADER WITH CAPTAIN + CHIP (BEFORE OPENING) ===
+    # === HEADER: CAPTAIN + CHIP (VISIBLE BEFORE OPENING) ===
     header_html = ""
     if captain_name or active_chip:
         header_html = f"""
-        <div style='text-align:center; padding:6px 0; font-size:11px; color:#AAA; background:#0D1117;'>
+        <div style="background:#0D1117; padding:6px 12px; text-align:center; font-size:11px; color:#AAA; border-bottom:1px solid #30363D;">
             {f'<span style="color:#FFD700; font-weight:700;">C: {captain_name}</span>' if captain_name else ''}
-            {f'<span style="color:#E90052; font-weight:700; margin-left:8px;">{active_chip}</span>' if active_chip else ''}
+            {f'<span style="color:#E90052; font-weight:700; margin-left:10px;">{active_chip}</span>' if active_chip else ''}
         </div>
         """
 
@@ -255,6 +254,7 @@ for player in standings:
     
     change_str = ""
     picks = []
+    picks_data = {}
     
     try:
         picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
@@ -281,7 +281,7 @@ for player in standings:
     """, unsafe_allow_html=True)
     
     with st.expander("", expanded=False):
-        formation_html = render_formation(picks, players, live_pts, teams)
+        formation_html = render_formation(picks, players, live_pts, teams, picks_data)
         html(formation_html, height=600)
 
 st.markdown(f"""
