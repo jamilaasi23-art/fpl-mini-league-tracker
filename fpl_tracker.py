@@ -21,91 +21,87 @@ st.markdown("""
     .gw-down {color: #EF4444;}
     .chip {font-size: 9px; padding: 1px 5px; background: #E90052; color: #FFF; border-radius: 8px; margin-left: 3px;}
     
-    /* PITCH — FIXED WITH PX */
-    .pitch-container {
+    /* PITCH IMAGE + OVERLAY */
+    .pitch-wrapper {
         position: relative;
         width: 100%;
-        height: 400px;
-        background: #1A5F3D;
-        border-radius: 16px;
-        margin: 16px 0;
-        border: 3px solid #30363D;
-        overflow: hidden;
+        max-width: 400px;
+        margin: 16px auto;
     }
-    .player-pos {
+    .pitch-img {
+        width: 100%;
+        height: auto;
+        border-radius: 16px;
+        border: 3px solid #30363D;
+    }
+    .player-overlay {
         position: absolute;
-        width: 80px;
+        width: 60px;
         text-align: center;
-        font-size: 10px;
+        font-size: 9px;
         color: #FFF;
         font-weight: 700;
-        text-shadow: 1px 1px 3px #000;
-        transform: translateX(-50%);
-        z-index: 100;
+        text-shadow: 1px 1px 2px #000;
     }
     .player-circle {
-        width: 40px;
-        height: 40px;
-        background: #0057B8;
-        color: #FFF;
-        border-radius: 50%;
-        margin: 0 auto 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 9px;
-        font-weight: 700;
-        border: 3px solid #FFF;
-    }
-    .captain {
-        border: 3.5px solid #FFD700 !important;
-        background: #FFD700 !important;
-        color: #000 !important;
-    }
-    .player-name {
-        font-size: 11px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 76px;
-        margin: 0 auto;
-    }
-    .player-pts {
-        color: #10B981;
-        font-weight: 700;
-        font-size: 13px;
-        margin-top: 4px;
-    }
-    
-    /* BENCH */
-    .bench-container {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        margin-top: 12px;
-        padding: 8px 0;
-        border-top: 1px solid #30363D;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-    }
-    .bench-player {
-        text-align: center;
-        min-width: 70px;
-        opacity: 0.8;
-        font-size: 10px;
-    }
-    .bench-circle {
         width: 36px;
         height: 36px;
-        background: #30363D;
-        color: #AAA;
+        background: #0057B8;
+        color: #FFF;
         border-radius: 50%;
         margin: 0 auto 4px;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 8px;
+        font-weight: 700;
+        border: 2.5px solid #FFF;
+    }
+    .captain {
+        border: 3px solid #FFD700 !important;
+        background: #FFD700 !important;
+        color: #000 !important;
+    }
+    .player-name {
+        font-size: 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 58px;
+        margin: 0 auto;
+    }
+    .player-pts {
+        color: #10B981;
+        font-weight: 700;
+        font-size: 12px;
+    }
+    
+    .bench-container {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 12px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+    .bench-player {
+        text-align: center;
+        min-width: 60px;
+        opacity: 0.8;
         font-size: 9px;
-        border: 1.5px solid #555;
+    }
+    .bench-circle {
+        width: 32px;
+        height: 32px;
+        background: #30363D;
+        color: #AAA;
+        border-radius: 50%;
+        margin: 0 auto 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        border: 1px solid #555;
     }
     .collapsible {background: #161B22; padding: 12px; border-radius: 10px; margin: 2px 0; color: #FFF;}
 </style>
@@ -134,18 +130,16 @@ def get_data():
 standings, gw, live, players = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
-# === POSITIONS IN PX (INSIDE 400px PITCH) ===
-def get_positions_px(num, base_y, spacing):
-    if num == 0: return []
-    start = 50 - (num - 1) * spacing / 2
-    return [(start + i * spacing, base_y) for i in range(num)]
-
-POS_PX = {
-    "GK": lambda n: get_positions_px(n, 320, 0) if n > 0 else [],
-    "DEF": lambda n: get_positions_px(n, 240, 16),
-    "MID": lambda n: get_positions_px(n, 160, 18),
-    "FWD": lambda n: get_positions_px(n, 80, 22)
+# === FIXED POSITIONS ON PITCH IMAGE ===
+POSITIONS = {
+    "GK": [(50, 85)],
+    "DEF": [(20, 65), (40, 65), (60, 65), (80, 65)],
+    "MID": [(15, 45), (35, 45), (50, 45), (65, 45), (85, 45)],
+    "FWD": [(30, 25), (50, 25), (70, 25)]
 }
+
+# PITCH IMAGE
+PITCH_IMAGE = "https://i.imgur.com/8Y5fO3j.png"  # Clean FPL-style pitch
 
 # === MAIN LOOP ===
 for player in standings:
@@ -197,27 +191,32 @@ for player in standings:
                 mids = [p for p in starters if players[p['element']]['element_type'] == 3]
                 fwds = [p for p in starters if players[p['element']]['element_type'] == 4]
                 
-                # PITCH
-                st.markdown("<div class='pitch-container'>", True)
+                # PITCH WITH IMAGE
+                st.markdown(f"""
+                <div class='pitch-wrapper'>
+                    <img src='{PITCH_IMAGE}' class='pitch-img'>
+                """, True)
                 
-                # PLAYERS IN PX
+                # PLAYERS
+                all_pos = []
                 for pos, data in [("GK", gk), ("DEF", defs), ("MID", mids), ("FWD", fwds)]:
-                    positions = POS_PX[pos](len(data))
                     for i, p in enumerate(data):
-                        if i >= len(positions): break
+                        if i >= len(POSITIONS[pos]): break
+                        x, y = POSITIONS[pos][i]
                         pl = players[p['element']]
-                        left_pct = positions[i][0]
-                        top_px = positions[i][1]
                         name = pl['second_name']
                         pts = live_pts.get(p['element'], 0)
                         cap = "captain" if p['is_captain'] else ""
-                        st.markdown(f"""
-                        <div class='player-pos' style='left:{left_pct}%; top:{top_px}px;'>
-                            <div class='player-circle {cap}'>{pl['web_name'][:3].upper()}</div>
-                            <div class='player-name'>{name}</div>
-                            <div class='player-pts'>{pts}</div>
-                        </div>
-                        """, True)
+                        all_pos.append((x, y, pl, pts, cap))
+                
+                for x, y, pl, pts, cap in all_pos:
+                    st.markdown(f"""
+                    <div class='player-overlay' style='left:{x}%; top:{y}%;'>
+                        <div class='player-circle {cap}'>{pl['web_name'][:3].upper()}</div>
+                        <div class='player-name'>{pl['second_name']}</div>
+                        <div class='player-pts'>{pts}</div>
+                    </div>
+                    """, True)
                 
                 st.markdown("</div>", True)
                 
@@ -225,11 +224,10 @@ for player in standings:
                 st.markdown("<div class='bench-container'>", True)
                 for p in picks[11:]:
                     pl = players[p['element']]
-                    name = pl['second_name']
                     st.markdown(f"""
                     <div class='bench-player'>
                         <div class='bench-circle'>{pl['web_name'][:3].upper()}</div>
-                        <div>{name}</div>
+                        <div>{pl['second_name']}</div>
                     </div>
                     """, True)
                 st.markdown("</div>", True)
