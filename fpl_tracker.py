@@ -21,16 +21,16 @@ st.markdown("""
     .gw-down {color: #EF4444;}
     .chip {font-size: 9px; padding: 1px 5px; background: #E90052; color: #FFF; border-radius: 8px; margin-left: 3px;}
     
-    /* PITCH */
-    .pitch {
-        background: #1A5F3D;
-        height: 500px;
+    /* PITCH — FIXED */
+    .pitch-container {
         position: relative;
+        width: 100%;
+        height: 420px;
+        background: #1A5F3D;
         border-radius: 16px;
         margin: 16px 0;
         border: 3px solid #30363D;
-        overflow: visible !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        overflow: hidden;
     }
     .player-pos {
         position: absolute;
@@ -56,13 +56,11 @@ st.markdown("""
         font-size: 9px;
         font-weight: 700;
         border: 3px solid #FFF;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
     }
     .captain {
         border: 3.5px solid #FFD700 !important;
         background: #FFD700 !important;
         color: #000 !important;
-        box-shadow: 0 0 8px #FFD700;
     }
     .player-name {
         font-size: 11px;
@@ -79,13 +77,13 @@ st.markdown("""
         margin-top: 4px;
     }
     
-    /* BENCH — HORIZONTAL LINE */
+    /* BENCH — HORIZONTAL */
     .bench-container {
         display: flex;
         justify-content: center;
         gap: 20px;
-        margin-top: 10px;
-        padding: 10px 0;
+        margin-top: 12px;
+        padding: 8px 0;
         border-top: 1px solid #30363D;
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -136,17 +134,12 @@ def get_data():
 standings, gw, live, players = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
-# === SPACING ===
-def get_positions(num, base_y, spacing):
-    if num == 0: return []
-    start = 50 - (num - 1) * spacing / 2
-    return [(start + i * spacing, base_y) for i in range(num)]
-
+# === CORRECT POSITIONS (IN PERCENT OF PITCH) ===
 POS = {
-    "GK": lambda n: get_positions(n, 75, 0) if n > 0 else [],
-    "DEF": lambda n: get_positions(n, 58, 18),
-    "MID": lambda n: get_positions(n, 38, 20),
-    "FWD": lambda n: get_positions(n, 18, 24)
+    "GK": lambda n: [(50, 82)] if n > 0 else [],
+    "DEF": lambda n: [(50 - (n-1)*9, 65), (50, 65), (50 + (n-1)*9, 65)][:(n if n<=3 else 5)],
+    "MID": lambda n: [(50 - (n-1)*10, 45), (50, 45), (50 + (n-1)*10, 45)][:(n if n<=3 else 5)],
+    "FWD": lambda n: [(50 - (n-1)*12, 25), (50, 25), (50 + (n-1)*12, 25)][:(n if n<=3 else 3)]
 }
 
 # === MAIN LOOP ===
@@ -199,13 +192,16 @@ for player in standings:
                 mids = [p for p in starters if players[p['element']]['element_type'] == 3]
                 fwds = [p for p in starters if players[p['element']]['element_type'] == 4]
                 
-                st.markdown("<div class='pitch'>", True)
+                # PITCH
+                st.markdown("<div class='pitch-container'>", True)
                 
-                # === STARTERS ON PITCH ===
+                # PLAYERS
                 for pos, data in [("GK", gk), ("DEF", defs), ("MID", mids), ("FWD", fwds)]:
+                    positions = POS[pos](len(data))
                     for i, p in enumerate(data):
+                        if i >= len(positions): break
                         pl = players[p['element']]
-                        x, y = POS[pos](len(data))[i]
+                        x, y = positions[i]
                         name = pl['second_name']
                         pts = live_pts.get(p['element'], 0)
                         cap = "captain" if p['is_captain'] else ""
@@ -219,7 +215,7 @@ for player in standings:
                 
                 st.markdown("</div>", True)
                 
-                # === BENCH — HORIZONTAL LINE ===
+                # BENCH
                 st.markdown("<div class='bench-container'>", True)
                 for p in picks[11:]:
                     pl = players[p['element']]
