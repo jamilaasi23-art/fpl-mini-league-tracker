@@ -21,11 +21,11 @@ st.markdown("""
     .gw-down {color: #EF4444;}
     .chip {font-size: 9px; padding: 1px 5px; background: #E90052; color: #FFF; border-radius: 8px; margin-left: 3px;}
     
-    /* PITCH — FIXED */
+    /* PITCH — FIXED WITH PX */
     .pitch-container {
         position: relative;
         width: 100%;
-        height: 420px;
+        height: 400px;
         background: #1A5F3D;
         border-radius: 16px;
         margin: 16px 0;
@@ -77,7 +77,7 @@ st.markdown("""
         margin-top: 4px;
     }
     
-    /* BENCH — HORIZONTAL */
+    /* BENCH */
     .bench-container {
         display: flex;
         justify-content: center;
@@ -134,12 +134,17 @@ def get_data():
 standings, gw, live, players = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
-# === CORRECT POSITIONS (IN PERCENT OF PITCH) ===
-POS = {
-    "GK": lambda n: [(50, 82)] if n > 0 else [],
-    "DEF": lambda n: [(50 - (n-1)*9, 65), (50, 65), (50 + (n-1)*9, 65)][:(n if n<=3 else 5)],
-    "MID": lambda n: [(50 - (n-1)*10, 45), (50, 45), (50 + (n-1)*10, 45)][:(n if n<=3 else 5)],
-    "FWD": lambda n: [(50 - (n-1)*12, 25), (50, 25), (50 + (n-1)*12, 25)][:(n if n<=3 else 3)]
+# === POSITIONS IN PX (INSIDE 400px PITCH) ===
+def get_positions_px(num, base_y, spacing):
+    if num == 0: return []
+    start = 50 - (num - 1) * spacing / 2
+    return [(start + i * spacing, base_y) for i in range(num)]
+
+POS_PX = {
+    "GK": lambda n: get_positions_px(n, 320, 0) if n > 0 else [],
+    "DEF": lambda n: get_positions_px(n, 240, 16),
+    "MID": lambda n: get_positions_px(n, 160, 18),
+    "FWD": lambda n: get_positions_px(n, 80, 22)
 }
 
 # === MAIN LOOP ===
@@ -195,18 +200,19 @@ for player in standings:
                 # PITCH
                 st.markdown("<div class='pitch-container'>", True)
                 
-                # PLAYERS
+                # PLAYERS IN PX
                 for pos, data in [("GK", gk), ("DEF", defs), ("MID", mids), ("FWD", fwds)]:
-                    positions = POS[pos](len(data))
+                    positions = POS_PX[pos](len(data))
                     for i, p in enumerate(data):
                         if i >= len(positions): break
                         pl = players[p['element']]
-                        x, y = positions[i]
+                        left_pct = positions[i][0]
+                        top_px = positions[i][1]
                         name = pl['second_name']
                         pts = live_pts.get(p['element'], 0)
                         cap = "captain" if p['is_captain'] else ""
                         st.markdown(f"""
-                        <div class='player-pos' style='left:{x}%; top:{y}%;'>
+                        <div class='player-pos' style='left:{left_pct}%; top:{top_px}px;'>
                             <div class='player-circle {cap}'>{pl['web_name'][:3].upper()}</div>
                             <div class='player-name'>{name}</div>
                             <div class='player-pts'>{pts}</div>
