@@ -5,7 +5,7 @@ from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
-# === 720px TALL + 50% SMALLER CIRCLES + HUGE GK-BENCH GAP ===
+# === 620px TALL + NO OVERLAP + CAPTAIN YELLOW BORDER ONLY ===
 def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
@@ -21,12 +21,12 @@ def render_formation(picks, players, live_pts, teams):
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
     
-    # === ROWS: FWD, MID, DEF close — GK HIGH, BENCH LOW ===
+    # === ROWS: TIGHT BUT NO OVERLAP ===
     rows = [
         ("FWD", fwds, 10),   # 10%
-        ("MID", mids, 25),   # 25%
-        ("DEF", defs, 40),   # 40%
-        ("GK",  gk,   65)    # 65% — HUGE GAP TO BENCH
+        ("MID", mids, 24),   # 24%
+        ("DEF", defs, 38),   # 38%
+        ("GK",  gk,   58)    # 58% → HUGE GAP TO BENCH
     ]
     
     html_content = """
@@ -34,9 +34,9 @@ def render_formation(picks, players, live_pts, teams):
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
     .collapsible {
         background: #1A5F3D;
-        height: 720px;               /* 720px TALL */
+        height: 620px;               /* 620px TALL */
         position: relative;
-        border-radius: 20px;
+        border-radius: 18px;
         border: 2px solid #30363D;
         overflow: hidden;
         font-family: 'Inter', sans-serif;
@@ -55,7 +55,7 @@ def render_formation(picks, players, live_pts, teams):
         display: flex;
         justify-content: center;
         gap: 18px;
-        padding: 0 12px;
+        padding: 0 14px;
     }
     .player {
         width: 64px;
@@ -66,7 +66,7 @@ def render_formation(picks, players, live_pts, teams):
         text-shadow: 1px 1px 2px #000;
     }
     .circle {
-        width: 23px;                 /* 50% SMALLER (was 46px) */
+        width: 23px;
         height: 23px;
         background: #0057B8;
         color: #FFF;
@@ -80,9 +80,9 @@ def render_formation(picks, players, live_pts, teams):
         border: 2px solid #FFF;
     }
     .captain {
-        border: 2.5px solid #FFD700 !important;
-        background: #FFD700 !important;
-        color: #000 !important;
+        border: 3px solid #FFD700 !important;   /* YELLOW BORDER ONLY */
+        background: #0057B8 !important;         /* KEEP BLUE FILL */
+        color: #FFF !important;
     }
     .name {
         font-size: 9.5px;
@@ -101,7 +101,7 @@ def render_formation(picks, players, live_pts, teams):
     }
     .bench {
         position: absolute;
-        bottom: 12px;
+        bottom: 16px;                    /* MORE SPACE FROM GK */
         left: 0;
         right: 0;
         display: flex;
@@ -118,7 +118,7 @@ def render_formation(picks, players, live_pts, teams):
         font-size: 9px;
     }
     .bench-circle {
-        width: 21px;                 /* 50% SMALLER */
+        width: 21px;
         height: 21px;
         background: #30363D;
         color: #EEE;
@@ -262,7 +262,7 @@ for player in standings:
     
     with st.expander("", expanded=False):
         formation_html = render_formation(picks, players, live_pts, teams)
-        html(formation_html, height=740)  # 720px + padding
+        html(formation_html, height=640)  # 620px + padding
 
 st.markdown(f"""
 <div style='text-align:center; margin:8px 0; padding:6px; background:#0057B8; border-radius:6px; color:#FFF; font-size:10px;'>
