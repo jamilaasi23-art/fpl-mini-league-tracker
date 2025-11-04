@@ -1,11 +1,16 @@
 import streamlit as st
 import requests
 import time
+from streamlit.components.v1
+```python
+import streamlit as st
+import requests
+import time
 from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
-# === TALLER PITCH + BIG VERTICAL SPACING + BENCH POINTS ===
+# === FULL-WIDTH + ULTRA-TALL + NO MARGINS + MOBILE PERFECT ===
 def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
@@ -21,12 +26,12 @@ def render_formation(picks, players, live_pts, teams):
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
     
-    # === BIG VERTICAL SPACING (TALLER PITCH) ===
+    # === MAX VERTICAL SPREAD (ULTRA-TALL) ===
     rows = [
-        ("FWD", fwds, 10),   # 10%
-        ("MID", mids, 32),   # 32%
-        ("DEF", defs, 54),   # 54%
-        ("GK",  gk,   76)    # 76%
+        ("FWD", fwds, 8),    # 8%
+        ("MID", mids, 28),   # 28%
+        ("DEF", defs, 50),   # 50%
+        ("GK",  gk,   72)    # 72%
     ]
     
     html_content = """
@@ -34,101 +39,106 @@ def render_formation(picks, players, live_pts, teams):
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
     .collapsible {
         background: #1A5F3D;
-        height: 460px;               /* TALLER PITCH */
+        height: 540px;               /* ULTRA-TALL */
         position: relative;
-        border-radius: 16px;
+        border-radius: 18px;
         border: 2px solid #30363D;
         overflow: hidden;
         font-family: 'Inter', sans-serif;
-        margin: 6px 0;
-        width: 100%;
-        max-width: 100%;
+        margin: 8px 0;
+        width: 100vw;                /* FULL WIDTH */
+        max-width: 100vw;
+        margin-left: calc(-50vw + 50%);  /* CENTER & REMOVE SIDE MARGINS */
+        margin-right: calc(-50vw + 50%);
+        left: 50%;
+        right: 50%;
+        transform: translateX(-50%);
     }
     .row-container {
         position: absolute;
         left: 0; right: 0;
         display: flex;
         justify-content: center;
-        gap: 22px;
-        padding: 0 16px;
+        gap: 26px;
+        padding: 0 20px;
     }
     .player {
-        width: 78px;
+        width: 86px;
         text-align: center;
-        font-size: 10px;
+        font-size: 11px;
         color: #FFF;
         font-weight: 700;
         text-shadow: 1px 1px 2px #000;
     }
     .circle {
-        width: 42px;
-        height: 42px;
+        width: 46px;
+        height: 46px;
         background: #0057B8;
         color: #FFF;
         border-radius: 50%;
-        margin: 0 auto 5px;
+        margin: 0 auto 7px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 700;
-        border: 3px solid #FFF;
+        border: 3.5px solid #FFF;
     }
     .captain {
-        border: 4px solid #FFD700 !important;
+        border: 4.5px solid #FFD700 !important;
         background: #FFD700 !important;
         color: #000 !important;
     }
     .name {
-        font-size: 10.2px;
+        font-size: 11.2px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 76px;
-        margin: 0 auto 3px;
+        max-width: 84px;
+        margin: 0 auto 4px;
     }
     .pts {
         color: #FFFFFF !important;
         font-weight: 700;
-        font-size: 15px !important;
+        font-size: 17px !important;
         margin-top: 2px;
         text-shadow: 1px 1px 3px #000;
     }
     .bench {
         position: absolute;
-        bottom: 8px;
+        bottom: 12px;
         left: 0;
         right: 0;
         display: flex;
         justify-content: center;
-        gap: 28px;
-        padding: 0 20px;
+        gap: 36px;
+        padding: 0 24px;
         overflow-x: auto;
         white-space: nowrap;
     }
     .bench-item {
         text-align: center;
-        min-width: 78px;
-        opacity: 0.9;
-        font-size: 9.8px;
+        min-width: 86px;
+        opacity: 0.95;
+        font-size: 10.5px;
     }
     .bench-circle {
-        width: 38px;
-        height: 38px;
+        width: 42px;
+        height: 42px;
         background: #30363D;
-        color: #DDD;
+        color: #EEE;
         border-radius: 50%;
-        margin: 0 auto 3px;
+        margin: 0 auto 4px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 9.5px;
-        border: 2px solid #666;
+        font-size: 10.5px;
+        border: 2.5px solid #777;
     }
     .bench-pts {
         color: #FFFFFF;
         font-weight: 700;
-        font-size: 13px;
+        font-size: 15px;
         text-shadow: 1px 1px 2px #000;
     }
     .locked {
@@ -137,13 +147,13 @@ def render_formation(picks, players, live_pts, teams):
         left: 50%;
         transform: translate(-50%, -50%);
         color: #AAA;
-        font-size: 12px;
+        font-size: 14px;
     }
     </style>
     <div class="collapsible">
     """
     
-    # === STARTERS (BIG SPACING) ===
+    # === STARTERS (MAX SPREAD) ===
     for pos, data, top_pct in rows:
         if not data: continue
         html_content += f'<div class="row-container" style="top:{top_pct}%;">'
@@ -257,7 +267,7 @@ for player in standings:
     
     with st.expander("", expanded=False):
         formation_html = render_formation(picks, players, live_pts, teams)
-        html(formation_html, height=480)  # TALLER
+        html(formation_html, height=560)  # MATCHES ULTRA-TALL
 
 st.markdown(f"""
 <div style='text-align:center; margin:8px 0; padding:6px; background:#0057B8; border-radius:6px; color:#FFF; font-size:10px;'>
