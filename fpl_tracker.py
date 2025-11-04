@@ -5,7 +5,7 @@ from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
-# === 580px PITCH + JERSEY NAME + CAPTAIN UNDER NAME ===
+# === 580px PITCH + JERSEY NAME ===
 def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
@@ -21,7 +21,6 @@ def render_formation(picks, players, live_pts, teams):
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
     
-    # === ROWS: NO OVERLAP, 580px TALL ===
     rows = [
         ("FWD", fwds, 10),
         ("MID", mids, 23),
@@ -148,7 +147,6 @@ def render_formation(picks, players, live_pts, teams):
     <div class="collapsible">
     """
     
-    # === STARTERS ===
     for pos, data, top_pct in rows:
         if not data: continue
         html_content += f'<div class="row-container" style="top:{top_pct}%;">'
@@ -157,7 +155,7 @@ def render_formation(picks, players, live_pts, teams):
             pts = live_pts.get(p['element'], 0)
             cap = "captain" if p['is_captain'] else ""
             team_code = get_team_code(p['element'])
-            name = pl['web_name']  # JERSEY NAME
+            name = pl['web_name']
             html_content += f"""
             <div class="player">
                 <div class="circle {cap}">{team_code}</div>
@@ -167,7 +165,6 @@ def render_formation(picks, players, live_pts, teams):
             """
         html_content += "</div>"
     
-    # === BENCH WITH POINTS ===
     html_content += '<div class="bench">'
     for p in bench:
         pl = players[p['element']]
@@ -185,7 +182,7 @@ def render_formation(picks, players, live_pts, teams):
     
     return html_content
 
-# === MAIN STYLES (TWO-LINE ROW, CAPTAIN UNDER NAME) ===
+# === MAIN STYLES: MANAGER ROW UNCHANGED + CAPTAIN UNDER IT ===
 st.markdown("""
 <style>
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
@@ -203,7 +200,7 @@ st.markdown("""
     .gw {font-size: 10px; color: #10B981;}
     .gw-down {color: #EF4444;}
     .chip {font-size: 8px; padding: 1px 4px; background:#E90052; color:#FFF; border-radius:6px; margin-left:3px;}
-    .subline {display: flex; justify-content: space-between; align-items: center; font-size: 10px; margin-top: 2px; color: #AAA;}
+    .captain-line {font-size: 10px; color: #AAA; text-align: right; margin-top: 2px;}
     .captain-info {color: #FFD700; font-weight: 700;}
     .chip-info {color: #E90052; font-weight: 700;}
 </style>
@@ -263,10 +260,16 @@ for player in standings:
 
     row_class = "top1" if rank == 1 else "top2" if rank == 2 else "top3" if rank <= 3 else ""
     
-    # === TWO-LINE ROW: CAPTAIN & CHIP UNDER NAME, NEXT TO ARROW ===
-    captain_str = f"<span class='captain-info'>C: {captain_name}</span>" if captain_name else ""
-    chip_str = f"<span class='chip-info'>{active_chip}</span>" if active_chip else ""
-    
+    # === MANAGER ROW UNCHANGED + CAPTAIN UNDER IT ===
+    captain_line = ""
+    if captain_name or active_chip:
+        captain_line = "<div class='captain-line'>"
+        if captain_name:
+            captain_line += f"<span class='captain-info'>C: {captain_name}</span>"
+        if active_chip:
+            captain_line += f" <span class='chip-info'>{active_chip}</span>"
+        captain_line += "</div>"
+
     st.markdown(f"""
     <div class='row {row_class}'>
         <div class='header'>
@@ -277,10 +280,7 @@ for player in standings:
             <span class='points'>{total}</span><span class='gw-label'>Total</span>
             {change_str}
         </div>
-        <div class='subline'>
-            <span>{captain_str} {chip_str}</span>
-            <span>Right arrow</span>
-        </div>
+        {captain_line}
     </div>
     """, unsafe_allow_html=True)
     
