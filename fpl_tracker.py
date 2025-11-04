@@ -22,6 +22,7 @@ st.markdown("""
     .gw-down {color: #EF4444;}
     .chip {font-size: 8px; padding: 1px 4px; background: #E90052; color: #FFF; border-radius: 6px; margin-left: 3px;}
     
+    /* FULL GREEN COLLAPSIBLE PITCH */
     .collapsible {
         background: #1A5F3D;
         height: 360px;
@@ -76,6 +77,7 @@ st.markdown("""
         margin-top: 2px;
     }
     
+    /* HORIZONTAL BENCH — NO VERTICAL EVER */
     .bench {
         position: absolute;
         bottom: 8px;
@@ -110,7 +112,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown(f"<img src='https://via.placeholder.com/160x28/0D1117/E90052?text=إيد+مين+بطيز+مين' class='logo'>", True)
+# LOGO
+LOGO_URL = "https://via.placeholder.com/160x28/0D1117/E90052?text=إيد+مين+بطيز+مين"
+st.markdown(f"<img src='{LOGO_URL}' class='logo'>", unsafe_allow_html=True)
 st.markdown("<h1 class='title'>إيد مين بطيز مين</h1>", True)
 
 LEAGUE_ID = 443392
@@ -131,6 +135,7 @@ def get_data():
 standings, gw, live, players = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
+# === FIXED POSITIONS (CALIBRATED FOR 360px GREEN BOX) ===
 POS = {
     "GK":  [(50, 80)],
     "DEF": [(18, 60), (36, 60), (54, 60), (72, 60)],
@@ -138,6 +143,7 @@ POS = {
     "FWD": [(28, 20), (50, 20), (72, 20)]
 }
 
+# === MAIN LOOP ===
 for player in standings:
     rank = player['rank']
     name = player['player_name'][:11]
@@ -178,17 +184,16 @@ for player in standings:
             st.markdown("<div class='collapsible'>", True)
             
             if not picks:
-                st.markdown("<div style='position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#AAA; font-size:11px;'>Squad locked</div>", True)
+                st.markdown("<div style='text-align:center; padding-top:140px; color:#AAA; font-size:11px;'>Squad locked</div>", True)
             else:
                 starters = picks[:11]
-                gk = [p for p in starters if players[p['element']]['element_type'] == 1]
-                defs = [p for p in starters if players[p['element']]['element_type'] == 2]
-                mids = [p for p in starters if players[p['element']]['element_type'] == 3]
-                fwds = [p for p in starters if players[p['element']]['element_type'] == 4]
                 bench = picks[11:]
                 
-                # PLAYERS
-                for pos, data in [("GK", gk), ("DEF", defs), ("MID", mids), ("FWD", fwds)]:
+                # === STARTERS ON GREEN ===
+                for pos, data in [("GK", [p for p in starters if players[p['element']]['element_type'] == 1]),
+                                ("DEF", [p for p in starters if players[p['element']]['element_type'] == 2]),
+                                ("MID", [p for p in starters if players[p['element']]['element_type'] == 3]),
+                                ("FWD", [p for p in starters if players[p['element']]['element_type'] == 4])]:
                     positions = POS[pos]
                     for i, p in enumerate(data):
                         if i >= len(positions): break
@@ -204,7 +209,7 @@ for player in standings:
                         </div>
                         """, True)
                 
-                # BENCH HORIZONTAL
+                # === HORIZONTAL BENCH (NEVER VERTICAL) ===
                 st.markdown("<div class='bench'>", True)
                 for p in bench:
                     pl = players[p['element']]
@@ -218,6 +223,7 @@ for player in standings:
             
             st.markdown("</div>", True)
 
+# Footer
 st.markdown(f"""
 <div style='text-align:center; margin:8px 0; padding:6px; background:#0057B8; border-radius:6px; color:#FFF; font-size:10px;'>
     GW {gw} • {time.strftime('%H:%M:%S')}
