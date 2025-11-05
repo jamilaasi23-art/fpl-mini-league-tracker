@@ -21,7 +21,6 @@ def render_formation(picks, players, live_pts, teams):
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
    
-    # === GET CAPTAIN & CHIP FOR HEADER ===
     captain_name = ""
     active_chip = ""
     if picks:
@@ -32,7 +31,6 @@ def render_formation(picks, players, live_pts, teams):
         if chip:
             active_chip = chip.upper()[:2]
     
-    # === HEADER WITH CAPTAIN + CHIP (BEFORE OPENING) ===
     header_html = ""
     if captain_name or active_chip:
         header_html = f"""
@@ -204,7 +202,7 @@ def render_formation(picks, players, live_pts, teams):
    
     return html_content
 
-# === MAIN STYLES: FULL LIST COLORED (1st to last) ===
+# === MAIN STYLES: FULL LIST COLORED ===
 st.markdown("""
 <style>
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
@@ -212,6 +210,9 @@ st.markdown("""
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 2px 0; font-weight: 700;}
     .row {display: flex; align-items: center; padding: 6px 8px; margin: 2px 0;
           background: #161B22; border-radius: 6px; border-left: 3px solid #30363D; font-size: 11.5px;}
+    .top1 {background: linear-gradient(135deg, #E90052, #0057B8) !important; color: #FFF !important; border-left-color: #FFD700;}
+    .top2 {background: linear-gradient(135deg, #3D195B, #0057B8) !important; color: #FFF !important;}
+    .top3 {background: linear-gradient(135deg, #E90052, #3D195B) !important; color: #FFF !important;}
     .rank {font-weight: 700; font-size: 12px; min-width: 22px;}
     .points {font-weight: 700; font-size: 12px; min-width: 38px; text-align: right;}
     .gw-label {color: #888; font-size: 9px; margin: 0 4px;}
@@ -219,44 +220,6 @@ st.markdown("""
     .gw-down {color: #EF4444;}
 </style>
 """, unsafe_allow_html=True)
-
-# === DYNAMIC COLOR PER RANK ===
-def get_row_class(rank, total_managers):
-    if rank == 1:
-        return "top1"
-    elif rank == 2:
-        return "top2"
-    elif rank == 3:
-        return "top3"
-    else:
-        # Gradient from #161B22 (4th) to #0D1117 (last)
-        ratio = (rank - 3) / (total_managers - 3) if total_managers > 3 else 0
-        r = int(22 + (13 - 22) * ratio)
-        g = int(27 + (17 - 27) * ratio)
-        b = int(34 + (23 - 34) * ratio)
-        color = f"#{r:02x}{g:02x}{b:02x}"
-        return f"rank{rank}"
-
-# Add dynamic styles
-dynamic_styles = ""
-for player in standings:
-    rank = player['rank']
-    total_managers = len(standings)
-    row_class = get_row_class(rank, total_managers)
-    if rank > 3:
-        ratio = (rank - 3) / (total_managers - 3) if total_managers > 3 else 0
-        r = int(22 + (13 - 22) * ratio)
-        g = int(27 + (17 - 27) * ratio)
-        b = int(34 + (23 - 34) * ratio)
-        color = f"#{r:02x}{g:02x}{b:02x}"
-        dynamic_styles += f"""
-        .row.rank{rank} {{
-            background: {color} !important;
-            border-left-color: #30363D !important;
-        }}
-        """
-
-st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
 
 st.markdown(f"<img src='https://via.placeholder.com/160x28/0D1117/E90052?text=إيد+مين+بطيز+مين' class='logo'>", True)
 st.markdown("<h1 class='title'>إيد مين بطيز مين</h1>", True)
@@ -277,11 +240,31 @@ def get_data():
     except:
         return [], 1, {}, {}, {}
 
+# === GET DATA FIRST ===
 standings, gw, live, players, teams = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
-
 total_managers = len(standings)
 
+# === DYNAMIC GRADIENT STYLES (NOW standings IS DEFINED) ===
+dynamic_styles = ""
+for player in standings:
+    rank = player['rank']
+    if rank <= 3:
+        continue
+    ratio = (rank - 3) / (total_managers - 3) if total_managers > 3 else 0
+    r = int(22 + (13 - 22) * ratio)
+    g = int(27 + (17 - 27) * ratio)
+    b = int(34 + (23 - 34) * ratio)
+    color = f"#{r:02x}{g:02x}{b:02x}"
+    dynamic_styles += f"""
+    .row.rank{rank} {{
+        background: {color} !important;
+        border-left-color: #30363D !important;
+    }}
+    """
+st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
+
+# === RENDER ROWS ===
 for player in standings:
     rank = player['rank']
     name = player['player_name'][:11]
@@ -302,9 +285,8 @@ for player in standings:
     except:
         pass
 
-    row_class = get_row_class(rank, total_managers)
+    row_class = f"top{rank}" if rank <= 3 else f"rank{rank}"
    
-    # === COLORED ROW: FULL LIST ===
     st.markdown(f"""
     <div class='row {row_class}'>
         <span class='rank'>#{rank}</span>
