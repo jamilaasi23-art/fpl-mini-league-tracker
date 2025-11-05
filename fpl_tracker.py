@@ -202,7 +202,7 @@ def render_formation(picks, players, live_pts, teams):
    
     return html_content
 
-# === MAIN STYLES: COLORED ROW IS CLICKABLE ===
+# === STYLES ===
 st.markdown("""
 <style>
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
@@ -222,9 +222,6 @@ st.markdown("""
     .gw-label {color: #888; font-size: 9px; margin: 0 4px;}
     .gw {font-size: 10px; color: #10B981;}
     .gw-down {color: #EF4444;}
-    /* Hide all expander headers */
-    .streamlit-expanderHeader {display: none !important;}
-    .streamlit-expander {padding: 0 !important; margin: 0 !important; border: none !important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -251,12 +248,11 @@ standings, gw, live, players, teams = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 total_managers = len(standings)
 
-# === DYNAMIC GRADIENT STYLES ===
+# === DYNAMIC STYLES ===
 dynamic_styles = ""
 for player in standings:
     rank = player['rank']
-    if rank <= 3:
-        continue
+    if rank <= 3: continue
     ratio = (rank - 4) / (total_managers - 4) if total_managers > 4 else 0
     if ratio < 0.25:
         r = int(233 + (0 - 233) * (ratio / 0.25))
@@ -284,7 +280,11 @@ for player in standings:
     """
 st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
 
-# === SINGLE COLORED ROW — CLICK OPENS SQUAD ===
+# === SESSION STATE FOR EXPANDERS ===
+if 'expanded' not in st.session_state:
+    st.session_state.expanded = {}
+
+# === RENDER ROWS ===
 for idx, player in enumerate(standings):
     rank = player['rank']
     name = player['player_name'][:11]
@@ -306,21 +306,26 @@ for idx, player in enumerate(standings):
         pass
 
     row_class = f"top{rank}" if rank <= 3 else f"rank{rank}"
+    key = f"toggle_{idx}"
 
-    # === CLICKABLE COLORED ROW ===
-    with st.expander("", expanded=False, key=f"exp_{idx}"):
-        st.markdown(f"""
-        <div class='colored-row {row_class}'>
-            <span class='rank'>#{rank}</span>
-            <span style='flex:1; margin-left:5px;'>{name}</span>
-            <span style='font-weight:600; min-width:95px;'>{team}</span>
-            <span class='points'>{player['event_total']}</span><span class='gw-label'>GW</span>
-            <span class='points'>{total}</span><span class='gw-label'>Total</span>
-            {change_str}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # === SQUAD OPENS IMMEDIATELY BELOW ===
+    # === COLORED ROW (CLICKABLE) ===
+    if st.button("", key=key, help="Toggle squad"):
+        st.session_state.expanded[key] = not st.session_state.expanded.get(key, False)
+        st.rerun()
+
+    st.markdown(f"""
+    <div class='colored-row {row_class}'>
+        <span class='rank'>#{rank}</span>
+        <span style='flex:1; margin-left:5px;'>{name}</span>
+        <span style='font-weight:600; min-width:95px;'>{team}</span>
+        <span class='points'>{player['event_total']}</span><span class='gw-label'>GW</span>
+        <span class='points'>{total}</span><span class='gw-label'>Total</span>
+        {change_str}
+    </div>
+    """, unsafe_allow_html=True)
+
+    # === OPEN SQUAD IF TOGGLED ===
+    if st.session_state.expanded.get(key, False):
         formation_html = render_formation(picks, players, live_pts, teams)
         html(formation_html, height=600)
 
