@@ -88,66 +88,45 @@ st.markdown("""
     .title {font-size:20px;text-align:center;background:linear-gradient(90deg,#0057B8,#E90052);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:2px 0;font-weight:700;}
     
     /* Row + Button Container */
-    .manager-row {
+    .manager-container {
         display: flex;
         align-items: center;
-        margin: 3px 0;
+        margin: 2px 0;
         gap: 6px;
-        min-height: 60px;
-        padding: 4px 0;
     }
     
     /* Colored Row */
     .colored-row {
         flex: 1;
         display: flex;
-        flex-direction: column;
-        padding: 6px 10px;
-        border-radius: 8px;
+        align-items: center;
+        padding: 6px 8px;
+        border-radius: 6px;
         border-left: 3px solid #30363D;
-        font-size: 12px;
-        background: #1A1F24;
-        color: #FFF;
+        font-size: 11.5px;
+        min-height: 36px;
     }
-    .colored-row:hover {opacity: 0.95;}
+    .colored-row:hover {opacity: 0.9;}
     
     .top1 {background:linear-gradient(135deg,#E90052,#0057B8)!important;color:#FFF!important;border-left-color:#FFD700;}
     .top2 {background:linear-gradient(135deg,#3D195B,#0057B8)!important;color:#FFF!important;}
     .top3 {background:linear-gradient(135deg,#E90052,#3D195B)!important;color:#FFF!important;}
     
-    .name-line {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: nowrap;
-        overflow: hidden;
-    }
-    .rank {font-weight:700;font-size:13px;min-width:24px;}
-    .player-name {font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .gw-pts {font-weight:700;color:#10B981;min-width:50px;text-align:right;}
-    .total-pts {font-weight:700;min-width:70px;text-align:right;}
-    .change {font-weight:700;font-size:11px;margin-left:6px;}
-    .change-up {color:#10B981;}
-    .change-down {color:#EF4444;}
-    
-    .team-name {
-        font-size: 11px;
-        color: #AAA;
-        margin-top: 2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+    .rank {font-weight:700;font-size:12px;min-width:22px;}
+    .points {font-weight:700;font-size:12px;min-width:38px;text-align:right;}
+    .gw-label {color:#888;font-size:9px;margin:0 4px;}
+    .gw {font-size:10px;color:#10B981;}
+    .gw-down {color:#EF4444;}
     
     /* Arrow Button */
     .arrow-btn {
         background: #30363D;
         color: #AAA;
         border: none;
-        border-radius: 6px;
-        width: 32px;
-        height: 32px;
-        font-size: 11px;
+        border-radius: 4px;
+        width: 28px;
+        height: 28px;
+        font-size: 10px;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -220,8 +199,8 @@ if 'expanded' not in st.session_state:
 # === RENDER ROWS ===
 for idx, player in enumerate(standings):
     rank = player['rank']
-    player_name = player['player_name']
-    team_name = player['entry_name']
+    name = player['player_name'][:11]
+    team = player['entry_name'][:16]
     total = player['total']
     entry_id = player['entry']
    
@@ -234,28 +213,25 @@ for idx, player in enumerate(standings):
         if picks:
             gw_live = sum(live_pts.get(p['element'], 0) * p['multiplier'] for p in picks)
             change = gw_live - player['event_total']
-            if change != 0:
-                change_str = f"<span class='change change-up'>+{change}</span>" if change > 0 else f"<span class='change change-down'>{change}</span>"
+            change_str = f"<span class='gw'>+{change}</span>" if change > 0 else f"<span class='gw-down'>{change}</span>" if change < 0 else ""
     except:
         pass
 
     row_class = f"top{rank}" if rank <= 3 else f"rank{rank}"
     key = f"row_{idx}"
 
-    # === ROW + BUTTON ===
-    col1, col2 = st.columns([1, 0.08])
+    # === ROW + BUTTON CONTAINER ===
+    col1, col2 = st.columns([1, 0.1])
     
     with col1:
         st.markdown(f"""
         <div class="colored-row {row_class}">
-            <div class="name-line">
-                <span class="rank">#{rank}</span>
-                <span class="player-name">{player_name}</span>
-                <span class="gw-pts">{player['event_total']} GW</span>
-                <span class="total-pts">{total} Total</span>
-                {change_str}
-            </div>
-            <div class="team-name">{team_name}</div>
+            <span class="rank">#{rank}</span>
+            <span style="flex:1;margin-left:5px;">{name}</span>
+            <span style="font-weight:600;min-width:95px;">{team}</span>
+            <span class="points">{player['event_total']}</span><span class="gw-label">GW</span>
+            <span class="points">{total}</span><span class="gw-label">Total</span>
+            {change_str}
         </div>
         """, unsafe_allow_html=True)
 
