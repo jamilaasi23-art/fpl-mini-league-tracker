@@ -236,11 +236,11 @@ for idx, player in enumerate(standings):
         """, unsafe_allow_html=True)
 
     with col2:
-        arrow_text = "Down Arrow" if st.session_state.expanded.get(key, False) else "Right Arrow"
-        if st.button(arrow_text, key=f"btn_{key}", help="Toggle squad"):
-            st.session_state.expanded[key] = not st.session_state.expanded.get(key, False)
-            st.rerun()
-
+       with col2:
+    arrow = "Down Arrow" if st.session_state.expanded.get(key, False) else "Right Arrow"
+    if st.button(arrow, key=f"btn_{key}", help="Toggle squad", use_container_width=True):
+        st.session_state.expanded[key] = not st.session_state.expanded.get(key, False)
+        st.rerun()
     # === SQUAD BELOW ===
     if st.session_state.expanded.get(key, False):
         formation_html = render_formation(picks, players, live_pts, teams)
@@ -254,3 +254,4 @@ st.markdown(f"""
 
 time.sleep(60)
 st.rerun()
+
