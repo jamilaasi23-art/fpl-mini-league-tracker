@@ -5,7 +5,7 @@ from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
-# === 580px PITCH + JERSEY NAME ===
+# === 580px PITCH ===
 def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
@@ -208,12 +208,12 @@ st.markdown("""
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
     .title {font-size: 20px; text-align: center; background: linear-gradient(90deg, #0057B8, #E90052);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 2px 0; font-weight: 700;}
-    .row {
+    .colored-row {
         display: flex; align-items: center; padding: 6px 8px; margin: 2px 0;
         border-radius: 6px; border-left: 3px solid #30363D; font-size: 11.5px;
         cursor: pointer; transition: 0.2s;
     }
-    .row:hover {opacity: 0.9;}
+    .colored-row:hover {opacity: 0.9;}
     .top1 {background: linear-gradient(135deg, #E90052, #0057B8) !important; color: #FFF !important; border-left-color: #FFD700;}
     .top2 {background: linear-gradient(135deg, #3D195B, #0057B8) !important; color: #FFF !important;}
     .top3 {background: linear-gradient(135deg, #E90052, #3D195B) !important; color: #FFF !important;}
@@ -222,8 +222,9 @@ st.markdown("""
     .gw-label {color: #888; font-size: 9px; margin: 0 4px;}
     .gw {font-size: 10px; color: #10B981;}
     .gw-down {color: #EF4444;}
-    /* Hide expander arrow */
+    /* Hide all expander headers */
     .streamlit-expanderHeader {display: none !important;}
+    .streamlit-expander {padding: 0 !important; margin: 0 !important; border: none !important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -246,12 +247,11 @@ def get_data():
     except:
         return [], 1, {}, {}, {}
 
-# === GET DATA ===
 standings, gw, live, players, teams = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 total_managers = len(standings)
 
-# === DYNAMIC GRADIENT FOR ALL RANKS ===
+# === DYNAMIC GRADIENT STYLES ===
 dynamic_styles = ""
 for player in standings:
     rank = player['rank']
@@ -276,7 +276,7 @@ for player in standings:
         b = int(61 + (23 - 61) * ((ratio - 0.75) / 0.25))
     color = f"#{r:02x}{g:02x}{b:02x}"
     dynamic_styles += f"""
-    .row.rank{rank} {{
+    .colored-row.rank{rank} {{
         background: linear-gradient(135deg, {color}, #0D1117) !important;
         color: #FFF !important;
         border-left-color: #30363D !important;
@@ -284,8 +284,8 @@ for player in standings:
     """
 st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
 
-# === RENDER SINGLE COLORED CLICKABLE ROW ===
-for player in standings:
+# === SINGLE COLORED ROW — CLICK OPENS SQUAD ===
+for idx, player in enumerate(standings):
     rank = player['rank']
     name = player['player_name'][:11]
     team = player['entry_name'][:16]
@@ -306,11 +306,11 @@ for player in standings:
         pass
 
     row_class = f"top{rank}" if rank <= 3 else f"rank{rank}"
-   
-    # === SINGLE COLORED ROW — CLICK TO OPEN ===
-    with st.expander("", expanded=False):
+
+    # === CLICKABLE COLORED ROW ===
+    with st.expander("", expanded=False, key=f"exp_{idx}"):
         st.markdown(f"""
-        <div class='row {row_class}'>
+        <div class='colored-row {row_class}'>
             <span class='rank'>#{rank}</span>
             <span style='flex:1; margin-left:5px;'>{name}</span>
             <span style='font-weight:600; min-width:95px;'>{team}</span>
@@ -320,7 +320,7 @@ for player in standings:
         </div>
         """, unsafe_allow_html=True)
         
-        # === SQUAD OPENS HERE ===
+        # === SQUAD OPENS IMMEDIATELY BELOW ===
         formation_html = render_formation(picks, players, live_pts, teams)
         html(formation_html, height=600)
 
