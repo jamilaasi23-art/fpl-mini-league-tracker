@@ -81,49 +81,65 @@ def render_formation(picks, players, live_pts, teams):
     html_content += "</div></div>"
     return html_content
 
-# === STYLES: ARROW ON SAME LINE ===
+# === STYLES ===
 st.markdown("""
 <style>
     .main {background:#0D1117;color:#FFFFFF;padding:6px;}
     .title {font-size:20px;text-align:center;background:linear-gradient(90deg,#0057B8,#E90052);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:2px 0;font-weight:700;}
     
-    /* Custom expander with arrow on right */
-    div[data-testid="stExpander"] details summary {
-        list-style: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
+    /* Row + Button Container */
+    .manager-container {
+        display: flex;
+        align-items: center;
+        margin: 2px 0;
+        gap: 6px;
     }
-    div[data-testid="stExpander"] details summary::after {
-        content: "▶";
-        font-size: 10px;
-        color: #AAA;
-        margin-left: 8px;
-        transition: transform 0.2s;
-    }
-    div[data-testid="stExpander"] details[open] summary::after {
-        content: "▼";
-        color: #FFF;
-    }
-    div[data-testid="stExpander"] > details > summary > div {
-        display: flex !important;
+    
+    /* Colored Row */
+    .colored-row {
+        flex: 1;
+        display: flex;
         align-items: center;
         padding: 6px 8px;
-        margin: 2px 0;
         border-radius: 6px;
         border-left: 3px solid #30363D;
         font-size: 11.5px;
-        cursor: pointer;
+        min-height: 36px;
     }
-    .clickable-row {display:flex;align-items:center;}
-    .clickable-row:hover {opacity:0.9;}
+    .colored-row:hover {opacity: 0.9;}
+    
     .top1 {background:linear-gradient(135deg,#E90052,#0057B8)!important;color:#FFF!important;border-left-color:#FFD700;}
     .top2 {background:linear-gradient(135deg,#3D195B,#0057B8)!important;color:#FFF!important;}
     .top3 {background:linear-gradient(135deg,#E90052,#3D195B)!important;color:#FFF!important;}
+    
     .rank {font-weight:700;font-size:12px;min-width:22px;}
     .points {font-weight:700;font-size:12px;min-width:38px;text-align:right;}
     .gw-label {color:#888;font-size:9px;margin:0 4px;}
     .gw {font-size:10px;color:#10B981;}
     .gw-down {color:#EF4444;}
+    
+    /* Arrow Button */
+    .arrow-btn {
+        background: #30363D;
+        color: #AAA;
+        border: none;
+        border-radius: 4px;
+        width: 28px;
+        height: 28px;
+        font-size: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+    }
+    .arrow-btn:hover {
+        background: #444;
+        color: #FFF;
+    }
+    .arrow-btn:active {
+        background: #555;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -173,10 +189,14 @@ for player in standings:
         g = int(95 + (17 - 95) * ((ratio - 0.75) / 0.25))
         b = int(61 + (23 - 61) * ((ratio - 0.75) / 0.25))
     color = f"#{r:02x}{g:02x}{b:02x}"
-    dynamic_styles += f".clickable-row.rank{rank} .summary-content{{background:linear-gradient(135deg,{color},#0D1117)!important;color:#FFF!important;border-left-color:#30363D!important;}}"
+    dynamic_styles += f".colored-row.rank{rank}{{background:linear-gradient(135deg,{color},#0D1117)!important;color:#FFF!important;border-left-color:#30363D!important;}}"
 st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
 
-# === RENDER ROWS WITH ARROW ON RIGHT ===
+# === SESSION STATE ===
+if 'expanded' not in st.session_state:
+    st.session_state.expanded = {}
+
+# === RENDER ROWS ===
 for idx, player in enumerate(standings):
     rank = player['rank']
     name = player['player_name'][:11]
@@ -198,21 +218,31 @@ for idx, player in enumerate(standings):
         pass
 
     row_class = f"top{rank}" if rank <= 3 else f"rank{rank}"
+    key = f"row_{idx}"
 
-    with st.expander("", expanded=False):
+    # === ROW + BUTTON CONTAINER ===
+    col1, col2 = st.columns([1, 0.1])
+    
+    with col1:
         st.markdown(f"""
-        <div class="clickable-row {row_class}">
-            <div class="summary-content" style="flex:1;display:flex;align-items:center;">
-                <span class="rank">#{rank}</span>
-                <span style="flex:1;margin-left:5px;">{name}</span>
-                <span style="font-weight:600;min-width:95px;">{team}</span>
-                <span class="points">{player['event_total']}</span><span class="gw-label">GW</span>
-                <span class="points">{total}</span><span class="gw-label">Total</span>
-                {change_str}
-            </div>
+        <div class="colored-row {row_class}">
+            <span class="rank">#{rank}</span>
+            <span style="flex:1;margin-left:5px;">{name}</span>
+            <span style="font-weight:600;min-width:95px;">{team}</span>
+            <span class="points">{player['event_total']}</span><span class="gw-label">GW</span>
+            <span class="points">{total}</span><span class="gw-label">Total</span>
+            {change_str}
         </div>
         """, unsafe_allow_html=True)
-        
+
+    with col2:
+        arrow_text = "▼" if st.session_state.expanded.get(key, False) else "▶"
+        if st.button(arrow_text, key=f"btn_{key}", help="Toggle squad"):
+            st.session_state.expanded[key] = not st.session_state.expanded.get(key, False)
+            st.rerun()
+
+    # === SQUAD BELOW ===
+    if st.session_state.expanded.get(key, False):
         formation_html = render_formation(picks, players, live_pts, teams)
         html(formation_html, height=600)
 
