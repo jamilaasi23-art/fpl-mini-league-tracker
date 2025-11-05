@@ -5,7 +5,7 @@ from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
-# === PAST WINNERS (MANUAL) ===
+# === PAST WINNERS (MANUAL) — MATCHED BY TEAM NAME ===
 PAST_WINNERS = {
     "remoun": 1,
     "Triple Crown Yousef": 3,
@@ -235,7 +235,7 @@ st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
 if 'expanded' not in st.session_state:
     st.session_state.expanded = {}
 
-# === RENDER LIVE STANDINGS WITH STARS ===
+# === RENDER LIVE STANDINGS WITH STARS NEXT TO MANAGER NAME ===
 for idx, player in enumerate(live_standings):
     live_rank = idx + 1
     full_name = player['player_name']
@@ -246,9 +246,9 @@ for idx, player in enumerate(live_standings):
     live_gain = player['live_gain']
     picks = player['picks']
 
-    # === ADD STARS ===
+    # === ADD STARS NEXT TO MANAGER NAME (FIRST NAME) ===
     stars = PAST_WINNERS.get(team_name, 0)
-    star_html = f"<span style='color:#FFD700; font-weight:700; text-shadow:0 0 3px #000; margin-left:4px;'>{ '★' * stars }</span>" if stars > 0 else ""
+    star_html = f"<span style='color:#FFD700; font-weight:700; text-shadow:0 0 3px #000; margin-left:3px; font-size:11px;'>{ '★' * stars }</span>" if stars > 0 else ""
 
     change_str = f"<span class='gw'>+{live_gain}</span>" if live_gain > 0 else f"<span class='gw-down'>{live_gain}</span>" if live_gain < 0 else ""
 
@@ -261,8 +261,8 @@ for idx, player in enumerate(live_standings):
         st.markdown(f"""
         <div class="colored-row {row_class}">
             <span class="rank">#{live_rank}</span>
-            <span style="flex:1;margin-left:5px;min-width:60px;">{first_name}</span>
-            <span class="team-name" style="min-width:120px;">{team_name}{star_html}</span>
+            <span style="flex:1;margin-left:5px;min-width:60px;white-space:nowrap;">{first_name}{star_html}</span>
+            <span class="team-name" style="min-width:120px;">{team_name}</span>
             <span class="points">{display_gw}</span><span class="gw-label">GW</span>
             <span class="points">{display_total}</span><span class="gw-label">Total</span>
             {change_str}
