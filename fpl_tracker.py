@@ -202,7 +202,7 @@ def render_formation(picks, players, live_pts, teams):
    
     return html_content
 
-# === MAIN STYLES: FULL LIST COLORED ===
+# === MAIN STYLES ===
 st.markdown("""
 <style>
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
@@ -240,28 +240,51 @@ def get_data():
     except:
         return [], 1, {}, {}, {}
 
-# === GET DATA FIRST ===
+# === GET DATA ===
 standings, gw, live, players, teams = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 total_managers = len(standings)
 
-# === DYNAMIC GRADIENT STYLES (NOW standings IS DEFINED) ===
+# === DYNAMIC GRADIENT FOR ALL RANKS ===
 dynamic_styles = ""
 for player in standings:
     rank = player['rank']
     if rank <= 3:
         continue
-    ratio = (rank - 3) / (total_managers - 3) if total_managers > 3 else 0
-    r = int(22 + (13 - 22) * ratio)
-    g = int(27 + (17 - 27) * ratio)
-    b = int(34 + (23 - 34) * ratio)
+    # Smooth gradient from #E90052 → #0057B8 → #3D195B → #1A5F3D (greenish) → #0D1117
+    ratio = (rank - 4) / (total_managers - 4) if total_managers > 4 else 0
+    
+    # Color phases
+    if ratio < 0.25:
+        # Red to Blue
+        r = int(233 + (0 - 233) * (ratio / 0.25))
+        g = int(0 + (87 - 0) * (ratio / 0.25))
+        b = int(82 + (184 - 82) * (ratio / 0.25))
+    elif ratio < 0.5:
+        # Blue to Purple
+        r = int(0 + (61 - 0) * ((ratio - 0.25) / 0.25))
+        g = int(87 + (25 - 87) * ((ratio - 0.25) / 0.25))
+        b = int(184 + (91 - 184) * ((ratio - 0.25) / 0.25))
+    elif ratio < 0.75:
+        # Purple to Green
+        r = int(61 + (26 - 61) * ((ratio - 0.5) / 0.25))
+        g = int(25 + (95 - 25) * ((ratio - 0.5) / 0.25))
+        b = int(91 + (61 - 91) * ((ratio - 0.5) / 0.25))
+    else:
+        # Green to Dark
+        r = int(26 + (13 - 26) * ((ratio - 0.75) / 0.25))
+        g = int(95 + (17 - 95) * ((ratio - 0.75) / 0.25))
+        b = int(61 + (23 - 61) * ((ratio - 0.75) / 0.25))
+    
     color = f"#{r:02x}{g:02x}{b:02x}"
     dynamic_styles += f"""
     .row.rank{rank} {{
-        background: {color} !important;
+        background: linear-gradient(135deg, {color}, #0D1117) !important;
+        color: #FFF !important;
         border-left-color: #30363D !important;
     }}
     """
+
 st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
 
 # === RENDER ROWS ===
