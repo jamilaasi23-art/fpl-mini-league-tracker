@@ -208,12 +208,12 @@ st.markdown("""
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
     .title {font-size: 20px; text-align: center; background: linear-gradient(90deg, #0057B8, #E90052);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 2px 0; font-weight: 700;}
-    .colored-row {
+    .clickable-row {
         display: flex; align-items: center; padding: 6px 8px; margin: 2px 0;
         border-radius: 6px; border-left: 3px solid #30363D; font-size: 11.5px;
         cursor: pointer; transition: 0.2s;
     }
-    .colored-row:hover {opacity: 0.9;}
+    .clickable-row:hover {opacity: 0.9;}
     .top1 {background: linear-gradient(135deg, #E90052, #0057B8) !important; color: #FFF !important; border-left-color: #FFD700;}
     .top2 {background: linear-gradient(135deg, #3D195B, #0057B8) !important; color: #FFF !important;}
     .top3 {background: linear-gradient(135deg, #E90052, #3D195B) !important; color: #FFF !important;}
@@ -272,7 +272,7 @@ for player in standings:
         b = int(61 + (23 - 61) * ((ratio - 0.75) / 0.25))
     color = f"#{r:02x}{g:02x}{b:02x}"
     dynamic_styles += f"""
-    .colored-row.rank{rank} {{
+    .clickable-row.rank{rank} {{
         background: linear-gradient(135deg, {color}, #0D1117) !important;
         color: #FFF !important;
         border-left-color: #30363D !important;
@@ -280,7 +280,7 @@ for player in standings:
     """
 st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
 
-# === SESSION STATE FOR EXPANDERS ===
+# === SESSION STATE ===
 if 'expanded' not in st.session_state:
     st.session_state.expanded = {}
 
@@ -306,25 +306,27 @@ for idx, player in enumerate(standings):
         pass
 
     row_class = f"top{rank}" if rank <= 3 else f"rank{rank}"
-    key = f"toggle_{idx}"
+    key = f"row_{idx}"
 
-    # === COLORED ROW (CLICKABLE) ===
-    if st.button("", key=key, help="Toggle squad"):
+    # === ENTIRE ROW IS CLICKABLE ===
+    html(f"""
+    <div class="clickable-row {row_class}" 
+         onclick="document.getElementById('{key}').click()">
+        <span class="rank">#{rank}</span>
+        <span style="flex:1; margin-left:5px;">{name}</span>
+        <span style="font-weight:600; min-width:95px;">{team}</span>
+        <span class="points">{player['event_total']}</span><span class="gw-label">GW</span>
+        <span class="points">{total}</span><span class="gw-label">Total</span>
+        {change_str}
+    </div>
+    """, height=40)
+
+    # === HIDDEN BUTTON FOR TOGGLE ===
+    if st.button("", key=key, help="Toggle squad", use_container_width=True):
         st.session_state.expanded[key] = not st.session_state.expanded.get(key, False)
         st.rerun()
 
-    st.markdown(f"""
-    <div class='colored-row {row_class}'>
-        <span class='rank'>#{rank}</span>
-        <span style='flex:1; margin-left:5px;'>{name}</span>
-        <span style='font-weight:600; min-width:95px;'>{team}</span>
-        <span class='points'>{player['event_total']}</span><span class='gw-label'>GW</span>
-        <span class='points'>{total}</span><span class='gw-label'>Total</span>
-        {change_str}
-    </div>
-    """, unsafe_allow_html=True)
-
-    # === OPEN SQUAD IF TOGGLED ===
+    # === SHOW SQUAD IF OPENED ===
     if st.session_state.expanded.get(key, False):
         formation_html = render_formation(picks, players, live_pts, teams)
         html(formation_html, height=600)
