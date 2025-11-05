@@ -9,18 +9,18 @@ st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
-  
+ 
     starters = picks[:11]
     bench = picks[11:]
-  
+ 
     gk = [p for p in starters if players[p['element']]['element_type'] == 1]
     defs = [p for p in starters if players[p['element']]['element_type'] == 2]
     mids = [p for p in starters if players[p['element']]['element_type'] == 3]
     fwds = [p for p in starters if players[p['element']]['element_type'] == 4]
-  
+ 
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
-  
+ 
     captain_name = ""
     active_chip = ""
     if picks:
@@ -30,7 +30,7 @@ def render_formation(picks, players, live_pts, teams):
         chip = picks[0].get('active_chip') if picks else None
         if chip:
             active_chip = chip.upper()[:2]
-   
+  
     header_html = ""
     if captain_name or active_chip:
         header_html = f"""
@@ -39,9 +39,9 @@ def render_formation(picks, players, live_pts, teams):
             {f'<span style="color:#E90052; font-weight:700; margin-left:8px;">{active_chip}</span>' if active_chip else ''}
         </div>
         """
-   
-    rows = [("FWD", fwds, 10), ("MID", mids, 23), ("DEF", defs, 36), ("GK", gk, 54)]
   
+    rows = [("FWD", fwds, 10), ("MID", mids, 23), ("DEF", defs, 36), ("GK", gk, 54)]
+ 
     html_content = f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
@@ -87,14 +87,14 @@ st.markdown("""
     .main {background:#0D1117;color:#FFFFFF;padding:6px;}
     .title {font-size:20px;text-align:center;background:linear-gradient(90deg,#0057B8,#E90052);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:2px 0;font-weight:700;}
     .subtitle {font-size:14px;text-align:center;color:#AAA;margin:0 0 8px;font-weight:500;}
-   
+  
     .manager-container {
         display: flex;
         align-items: center;
         margin: 2px 0;
         gap: 6px;
     }
-   
+  
     .colored-row {
         flex: 1;
         display: flex;
@@ -107,18 +107,18 @@ st.markdown("""
         overflow: hidden;
     }
     .colored-row:hover {opacity: 0.9;}
-   
+  
     .top1 {background:linear-gradient(135deg,#E90052,#0057B8)!important;color:#FFF!important;border-left-color:#FFD700;}
     .top2 {background:linear-gradient(135deg,#3D195B,#0057B8)!important;color:#FFF!important;}
     .top3 {background:linear-gradient(135deg,#E90052,#3D195B)!important;color:#FFF!important;}
-   
+  
     .rank {font-weight:700;font-size:12px;min-width:22px;}
     .points {font-weight:700;font-size:12px;min-width:38px;text-align:right;}
     .gw-label {color:#888;font-size:9px;margin:0 4px;}
     .gw {font-size:10px;color:#10B981;}
     .gw-down {color:#EF4444;}
     .team-name {font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
-   
+  
     .arrow-btn {
         background: #30363D;
         color: #AAA;
@@ -172,7 +172,7 @@ def get_data():
 standings, gw, live, players, teams = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
-# === CALCULATE LIVE POINTS & RE-RANK ===
+# === CALCULATE LIVE POINTS & RE-RANK (FIXED) ===
 live_standings = []
 for player in standings:
     entry_id = player['entry']
@@ -184,18 +184,27 @@ for player in standings:
         live_gw = sum(live_pts.get(p['element'], 0) * p['multiplier'] for p in picks)
     except:
         pass
-    live_total = player['total'] + live_gw
-    live_gain = live_gw - player['event_total']
+
+    # FIXED: Only add live_gw if it's different from event_total (i.e., GW not finished)
+    is_gw_live = live_gw != player['event_total']
+    display_gw = live_gw if is_gw_live else player['event_total']
+    display_total = player['total'] + live_gw if is_gw_live else player['total']
+    live_gain = live_gw - player['event_total'] if is_gw_live else 0
+
     live_standings.append({
         **player,
-        'live_gw': live_gw,
-        'live_total': live_total,
+        'live_gw': display_gw,
+        'live_total': display_total,
         'live_gain': live_gain,
-        'picks': picks
+        'picks': picks,
+        'is_live': is_gw_live
     })
 
-# === SORT BY LIVE TOTAL ===
-live_standings.sort(key=lambda x: x['live_total'], reverse=True)
+# === SORT BY LIVE TOTAL (ONLY IF GW IS LIVE) ===
+if any(p['is_live'] for p in live_standings):
+    live_standings.sort(key=lambda x: x['live_total'], reverse=True)
+else:
+    live_standings.sort(key=lambda x: x['total'], reverse=True)
 
 # === DYNAMIC GRADIENT (based on live rank) ===
 dynamic_styles = ""
@@ -230,13 +239,11 @@ if 'expanded' not in st.session_state:
 # === RENDER LIVE STANDINGS ===
 for idx, player in enumerate(live_standings):
     live_rank = idx + 1
-    # First name only
     full_name = player['player_name']
     first_name = full_name.split()[0] if full_name else "Player"
-    # Full team name (no truncation)
     team_name = player['entry_name']
-    live_gw = player['live_gw']
-    live_total = player['live_total']
+    display_gw = player['live_gw']
+    display_total = player['live_total']
     live_gain = player['live_gain']
     picks = player['picks']
 
@@ -246,15 +253,15 @@ for idx, player in enumerate(live_standings):
     key = f"row_{idx}"
 
     col1, col2 = st.columns([1, 0.1])
-   
+  
     with col1:
         st.markdown(f"""
         <div class="colored-row {row_class}">
             <span class="rank">#{live_rank}</span>
             <span style="flex:1;margin-left:5px;min-width:60px;">{first_name}</span>
             <span class="team-name" style="min-width:120px;">{team_name}</span>
-            <span class="points">{live_gw}</span><span class="gw-label">GW</span>
-            <span class="points">{live_total}</span><span class="gw-label">Total</span>
+            <span class="points">{display_gw}</span><span class="gw-label">GW</span>
+            <span class="points">{display_total}</span><span class="gw-label">Total</span>
             {change_str}
         </div>
         """, unsafe_allow_html=True)
@@ -269,12 +276,13 @@ for idx, player in enumerate(live_standings):
         formation_html = render_formation(picks, players, live_pts, teams)
         html(formation_html, height=600)
 
+# === FOOTER ===
+footer_text = "LIVE" if any(p['is_live'] for p in live_standings) else "FINAL"
 st.markdown(f"""
 <div style='text-align:center;margin:8px 0;padding:6px;background:#0057B8;border-radius:6px;color:#FFF;font-size:10px;'>
-    GW {gw} • LIVE • {time.strftime('%H:%M:%S')}
+    GW {gw} • {footer_text} • {time.strftime('%H:%M:%S')}
 </div>
 """, unsafe_allow_html=True)
 
 time.sleep(60)
 st.rerun()
-
