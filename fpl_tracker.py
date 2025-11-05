@@ -9,18 +9,18 @@ st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
-   
+  
     starters = picks[:11]
     bench = picks[11:]
-   
+  
     gk = [p for p in starters if players[p['element']]['element_type'] == 1]
     defs = [p for p in starters if players[p['element']]['element_type'] == 2]
     mids = [p for p in starters if players[p['element']]['element_type'] == 3]
     fwds = [p for p in starters if players[p['element']]['element_type'] == 4]
-   
+  
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
-   
+  
     captain_name = ""
     active_chip = ""
     if picks:
@@ -30,7 +30,7 @@ def render_formation(picks, players, live_pts, teams):
         chip = picks[0].get('active_chip') if picks else None
         if chip:
             active_chip = chip.upper()[:2]
-    
+   
     header_html = ""
     if captain_name or active_chip:
         header_html = f"""
@@ -39,9 +39,9 @@ def render_formation(picks, players, live_pts, teams):
             {f'<span style="color:#E90052; font-weight:700; margin-left:8px;">{active_chip}</span>' if active_chip else ''}
         </div>
         """
-    
-    rows = [("FWD", fwds, 10), ("MID", mids, 23), ("DEF", defs, 36), ("GK", gk, 54)]
    
+    rows = [("FWD", fwds, 10), ("MID", mids, 23), ("DEF", defs, 36), ("GK", gk, 54)]
+  
     html_content = f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
@@ -86,7 +86,8 @@ st.markdown("""
 <style>
     .main {background:#0D1117;color:#FFFFFF;padding:6px;}
     .title {font-size:20px;text-align:center;background:linear-gradient(90deg,#0057B8,#E90052);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:2px 0;font-weight:700;}
-    
+    .subtitle {font-size:14px;text-align:center;color:#AAA;margin:0 0 8px;font-weight:500;}
+   
     /* Row + Button Container */
     .manager-container {
         display: flex;
@@ -94,7 +95,7 @@ st.markdown("""
         margin: 2px 0;
         gap: 6px;
     }
-    
+   
     /* Colored Row */
     .colored-row {
         flex: 1;
@@ -107,17 +108,17 @@ st.markdown("""
         min-height: 36px;
     }
     .colored-row:hover {opacity: 0.9;}
-    
+   
     .top1 {background:linear-gradient(135deg,#E90052,#0057B8)!important;color:#FFF!important;border-left-color:#FFD700;}
     .top2 {background:linear-gradient(135deg,#3D195B,#0057B8)!important;color:#FFF!important;}
     .top3 {background:linear-gradient(135deg,#E90052,#3D195B)!important;color:#FFF!important;}
-    
+   
     .rank {font-weight:700;font-size:12px;min-width:22px;}
     .points {font-weight:700;font-size:12px;min-width:38px;text-align:right;}
     .gw-label {color:#888;font-size:9px;margin:0 4px;}
     .gw {font-size:10px;color:#10B981;}
     .gw-down {color:#EF4444;}
-    
+   
     /* Arrow Button */
     .arrow-btn {
         background: #30363D;
@@ -146,8 +147,20 @@ st.markdown("""
 st.markdown(f"<img src='https://via.placeholder.com/160x28/0D1117/E90052?text=إيد+مين+بطيز+مين' class='logo'>", True)
 st.markdown("<h1 class='title'>إيد مين بطيز مين</h1>", True)
 
+# === FETCH LEAGUE NAME ===
 LEAGUE_ID = 443392
 BASE_URL = "https://fantasy.premierleague.com/api/"
+
+@st.cache_data(ttl=300)
+def get_league_name():
+    try:
+        league_data = requests.get(f"{BASE_URL}leagues-classic/{LEAGUE_ID}/standings/").json()
+        return league_data['league']['name']
+    except:
+        return "Mini League"
+
+league_name = get_league_name()
+st.markdown(f"<p class='subtitle'>{league_name}</p>", unsafe_allow_html=True)
 
 @st.cache_data(ttl=60)
 def get_data():
@@ -156,7 +169,7 @@ def get_data():
         boot = requests.get(f"{BASE_URL}bootstrap-static/").json()
         gw = next((e['id'] for e in boot['events'] if e['is_current']), 1)
         live = requests.get(f"{BASE_URL}event/{gw}/live/").json()
-        players = {p['id']: p for p in boot['elements']}
+        players = {p['id'] for p in boot['elements']}
         teams = {t['id']: t['short_name'] for t in boot['teams']}
         return standings, gw, live, players, teams
     except:
@@ -203,10 +216,10 @@ for idx, player in enumerate(standings):
     team = player['entry_name'][:16]
     total = player['total']
     entry_id = player['entry']
-   
+  
     change_str = ""
     picks = []
-   
+  
     try:
         picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
         picks = picks_data.get('picks', [])
@@ -222,7 +235,7 @@ for idx, player in enumerate(standings):
 
     # === ROW + BUTTON CONTAINER ===
     col1, col2 = st.columns([1, 0.1])
-    
+   
     with col1:
         st.markdown(f"""
         <div class="colored-row {row_class}">
@@ -236,7 +249,7 @@ for idx, player in enumerate(standings):
         """, unsafe_allow_html=True)
 
     with col2:
-        arrow_text = "Close Squad" if st.session_state.expanded.get(key, False) else "Open Squad"
+        arrow_text = "Down Arrow" if st.session_state.expanded.get(key, False) else "Right Arrow"
         if st.button(arrow_text, key=f"btn_{key}", help="Toggle squad"):
             st.session_state.expanded[key] = not st.session_state.expanded.get(key, False)
             st.rerun()
