@@ -260,7 +260,7 @@ for idx, player in enumerate(live_standings):
         """, unsafe_allow_html=True)
 
     with col2:
-        arrow_text = "Down Arrow" if st.session_state.expanded.get(key, False) else "Right Arrow"
+        arrow_text = "CLOSE SQUAD" if st.session_state.expanded.get(key, False) else "OPEN SQUAD"
         if st.button(arrow_text, key=f"btn_{key}", help="Toggle squad"):
             st.session_state.expanded[key] = not st.session_state.expanded.get(key, False)
             st.rerun()
@@ -277,3 +277,4 @@ st.markdown(f"""
 
 time.sleep(60)
 st.rerun()
+
