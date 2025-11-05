@@ -5,6 +5,13 @@ from streamlit.components.v1 import html
 
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
+# === PAST WINNERS (MANUAL) ===
+PAST_WINNERS = {
+    "remoun": 1,
+    "Triple Crown Yousef": 3,
+    "منذر الملص": 2
+}
+
 # === 580px PITCH ===
 def render_formation(picks, players, live_pts, teams):
     if not picks:
@@ -87,13 +94,6 @@ st.markdown("""
     .main {background:#0D1117;color:#FFFFFF;padding:6px;}
     .title {font-size:20px;text-align:center;background:linear-gradient(90deg,#0057B8,#E90052);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:2px 0;font-weight:700;}
     .subtitle {font-size:14px;text-align:center;color:#AAA;margin:0 0 8px;font-weight:500;}
-  
-    .manager-container {
-        display: flex;
-        align-items: center;
-        margin: 2px 0;
-        gap: 6px;
-    }
   
     .colored-row {
         flex: 1;
@@ -185,7 +185,6 @@ for player in standings:
     except:
         pass
 
-    # FIXED: Only add live_gw if it's different from event_total (i.e., GW not finished)
     is_gw_live = live_gw != player['event_total']
     display_gw = live_gw if is_gw_live else player['event_total']
     display_total = player['total'] + live_gw if is_gw_live else player['total']
@@ -236,7 +235,7 @@ st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
 if 'expanded' not in st.session_state:
     st.session_state.expanded = {}
 
-# === RENDER LIVE STANDINGS ===
+# === RENDER LIVE STANDINGS WITH STARS ===
 for idx, player in enumerate(live_standings):
     live_rank = idx + 1
     full_name = player['player_name']
@@ -246,6 +245,10 @@ for idx, player in enumerate(live_standings):
     display_total = player['live_total']
     live_gain = player['live_gain']
     picks = player['picks']
+
+    # === ADD STARS ===
+    stars = PAST_WINNERS.get(team_name, 0)
+    star_html = f"<span style='color:#FFD700; font-weight:700; text-shadow:0 0 3px #000; margin-left:4px;'>{ '★' * stars }</span>" if stars > 0 else ""
 
     change_str = f"<span class='gw'>+{live_gain}</span>" if live_gain > 0 else f"<span class='gw-down'>{live_gain}</span>" if live_gain < 0 else ""
 
@@ -259,7 +262,7 @@ for idx, player in enumerate(live_standings):
         <div class="colored-row {row_class}">
             <span class="rank">#{live_rank}</span>
             <span style="flex:1;margin-left:5px;min-width:60px;">{first_name}</span>
-            <span class="team-name" style="min-width:120px;">{team_name}</span>
+            <span class="team-name" style="min-width:120px;">{team_name}{star_html}</span>
             <span class="points">{display_gw}</span><span class="gw-label">GW</span>
             <span class="points">{display_total}</span><span class="gw-label">Total</span>
             {change_str}
@@ -276,7 +279,7 @@ for idx, player in enumerate(live_standings):
         formation_html = render_formation(picks, players, live_pts, teams)
         html(formation_html, height=600)
 
-# === FOOTER ===
+# === FINAL FOOTER ===
 footer_text = "LIVE" if any(p['is_live'] for p in live_standings) else "FINAL"
 st.markdown(f"""
 <div style='text-align:center;margin:8px 0;padding:6px;background:#0057B8;border-radius:6px;color:#FFF;font-size:10px;'>
