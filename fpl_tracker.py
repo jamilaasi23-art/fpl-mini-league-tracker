@@ -88,7 +88,6 @@ st.markdown("""
     .title {font-size:20px;text-align:center;background:linear-gradient(90deg,#0057B8,#E90052);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:2px 0;font-weight:700;}
     .subtitle {font-size:14px;text-align:center;color:#AAA;margin:0 0 8px;font-weight:500;}
    
-    /* Row + Button Container */
     .manager-container {
         display: flex;
         align-items: center;
@@ -96,7 +95,6 @@ st.markdown("""
         gap: 6px;
     }
    
-    /* Colored Row */
     .colored-row {
         flex: 1;
         display: flex;
@@ -106,6 +104,7 @@ st.markdown("""
         border-left: 3px solid #30363D;
         font-size: 11.5px;
         min-height: 36px;
+        overflow: hidden;
     }
     .colored-row:hover {opacity: 0.9;}
    
@@ -118,8 +117,8 @@ st.markdown("""
     .gw-label {color:#888;font-size:9px;margin:0 4px;}
     .gw {font-size:10px;color:#10B981;}
     .gw-down {color:#EF4444;}
+    .team-name {font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
    
-    /* Arrow Button */
     .arrow-btn {
         background: #30363D;
         color: #AAA;
@@ -133,14 +132,9 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         transition: 0.2s;
+        flex-shrink: 0;
     }
-    .arrow-btn:hover {
-        background: #444;
-        color: #FFF;
-    }
-    .arrow-btn:active {
-        background: #555;
-    }
+    .arrow-btn:hover {background:#444;color:#FFF;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -169,7 +163,7 @@ def get_data():
         boot = requests.get(f"{BASE_URL}bootstrap-static/").json()
         gw = next((e['id'] for e in boot['events'] if e['is_current']), 1)
         live = requests.get(f"{BASE_URL}event/{gw}/live/").json()
-        players = {p['id'] for p in boot['elements']}
+        players = {p['id']: p for p in boot['elements']}
         teams = {t['id']: t['short_name'] for t in boot['teams']}
         return standings, gw, live, players, teams
     except:
@@ -177,14 +171,38 @@ def get_data():
 
 standings, gw, live, players, teams = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
-total_managers = len(standings)
 
-# === DYNAMIC GRADIENT ===
-dynamic_styles = ""
+# === CALCULATE LIVE POINTS & RE-RANK ===
+live_standings = []
 for player in standings:
-    rank = player['rank']
+    entry_id = player['entry']
+    live_gw = 0
+    picks = []
+    try:
+        picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
+        picks = picks_data.get('picks', [])
+        live_gw = sum(live_pts.get(p['element'], 0) * p['multiplier'] for p in picks)
+    except:
+        pass
+    live_total = player['total'] + live_gw
+    live_gain = live_gw - player['event_total']
+    live_standings.append({
+        **player,
+        'live_gw': live_gw,
+        'live_total': live_total,
+        'live_gain': live_gain,
+        'picks': picks
+    })
+
+# === SORT BY LIVE TOTAL ===
+live_standings.sort(key=lambda x: x['live_total'], reverse=True)
+
+# === DYNAMIC GRADIENT (based on live rank) ===
+dynamic_styles = ""
+for idx, player in enumerate(live_standings):
+    rank = idx + 1
     if rank <= 3: continue
-    ratio = (rank - 4) / (total_managers - 4) if total_managers > 4 else 0
+    ratio = (rank - 4) / (len(live_standings) - 4) if len(live_standings) > 4 else 0
     if ratio < 0.25:
         r = int(233 + (0 - 233) * (ratio / 0.25))
         g = int(0 + (87 - 0) * (ratio / 0.25))
@@ -209,41 +227,34 @@ st.markdown(f"<style>{dynamic_styles}</style>", unsafe_allow_html=True)
 if 'expanded' not in st.session_state:
     st.session_state.expanded = {}
 
-# === RENDER ROWS ===
-for idx, player in enumerate(standings):
-    rank = player['rank']
-    name = player['player_name'][:11]
-    team = player['entry_name'][:16]
-    total = player['total']
-    entry_id = player['entry']
-  
-    change_str = ""
-    picks = []
-  
-    try:
-        picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
-        picks = picks_data.get('picks', [])
-        if picks:
-            gw_live = sum(live_pts.get(p['element'], 0) * p['multiplier'] for p in picks)
-            change = gw_live - player['event_total']
-            change_str = f"<span class='gw'>+{change}</span>" if change > 0 else f"<span class='gw-down'>{change}</span>" if change < 0 else ""
-    except:
-        pass
+# === RENDER LIVE STANDINGS ===
+for idx, player in enumerate(live_standings):
+    live_rank = idx + 1
+    # First name only
+    full_name = player['player_name']
+    first_name = full_name.split()[0] if full_name else "Player"
+    # Full team name (no truncation)
+    team_name = player['entry_name']
+    live_gw = player['live_gw']
+    live_total = player['live_total']
+    live_gain = player['live_gain']
+    picks = player['picks']
 
-    row_class = f"top{rank}" if rank <= 3 else f"rank{rank}"
+    change_str = f"<span class='gw'>+{live_gain}</span>" if live_gain > 0 else f"<span class='gw-down'>{live_gain}</span>" if live_gain < 0 else ""
+
+    row_class = f"top{live_rank}" if live_rank <= 3 else f"rank{live_rank}"
     key = f"row_{idx}"
 
-    # === ROW + BUTTON CONTAINER ===
     col1, col2 = st.columns([1, 0.1])
    
     with col1:
         st.markdown(f"""
         <div class="colored-row {row_class}">
-            <span class="rank">#{rank}</span>
-            <span style="flex:1;margin-left:5px;">{name}</span>
-            <span style="font-weight:600;min-width:95px;">{team}</span>
-            <span class="points">{player['event_total']}</span><span class="gw-label">GW</span>
-            <span class="points">{total}</span><span class="gw-label">Total</span>
+            <span class="rank">#{live_rank}</span>
+            <span style="flex:1;margin-left:5px;min-width:60px;">{first_name}</span>
+            <span class="team-name" style="min-width:120px;">{team_name}</span>
+            <span class="points">{live_gw}</span><span class="gw-label">GW</span>
+            <span class="points">{live_total}</span><span class="gw-label">Total</span>
             {change_str}
         </div>
         """, unsafe_allow_html=True)
@@ -254,14 +265,13 @@ for idx, player in enumerate(standings):
             st.session_state.expanded[key] = not st.session_state.expanded.get(key, False)
             st.rerun()
 
-    # === SQUAD BELOW ===
     if st.session_state.expanded.get(key, False):
         formation_html = render_formation(picks, players, live_pts, teams)
         html(formation_html, height=600)
 
 st.markdown(f"""
 <div style='text-align:center;margin:8px 0;padding:6px;background:#0057B8;border-radius:6px;color:#FFF;font-size:10px;'>
-    GW {gw} • {time.strftime('%H:%M:%S')}
+    GW {gw} • LIVE • {time.strftime('%H:%M:%S')}
 </div>
 """, unsafe_allow_html=True)
 
