@@ -6,49 +6,48 @@ from streamlit.components.v1 import html
 st.set_page_config(page_title="إيد مين بطيز مين", layout="wide")
 
 # === 580px PITCH + JERSEY NAME ===
-def render_formation(picks, players, live_pts, teams, picks_data):
+def render_formation(picks, players, live_pts, teams):
     if not picks:
         return '<div class="collapsible"><div class="locked">Squad locked</div></div>'
-    
+   
     starters = picks[:11]
     bench = picks[11:]
-    
+   
     gk = [p for p in starters if players[p['element']]['element_type'] == 1]
     defs = [p for p in starters if players[p['element']]['element_type'] == 2]
     mids = [p for p in starters if players[p['element']]['element_type'] == 3]
     fwds = [p for p in starters if players[p['element']]['element_type'] == 4]
-    
+   
     def get_team_code(pid):
         return teams.get(players[pid]['team'], "??")
-    
-    # === CAPTAIN NAME & CHIP ===
+   
+    # === GET CAPTAIN & CHIP FOR HEADER ===
     captain_name = ""
     active_chip = ""
     if picks:
         captain = next((p for p in picks if p['is_captain']), None)
         if captain:
             captain_name = players[captain['element']]['web_name']
-        chip = picks_data.get('active_chip')
+        # Chip is in picks_data, not picks
+        chip = picks[0].get('active_chip') if picks else None
         if chip:
             active_chip = chip.upper()[:2]
-
-    # === HEADER: C: Haaland TC (ONLY WHEN OPENED) ===
+    # === HEADER WITH CAPTAIN + CHIP (BEFORE OPENING) ===
     header_html = ""
     if captain_name or active_chip:
         header_html = f"""
-        <div style="background:#0D1117; padding:6px 12px; text-align:center; font-size:11px; color:#AAA; border-bottom:1px solid #30363D;">
+        <div style='text-align:center; padding:6px 0; font-size:11px; color:#AAA; background:#0D1117;'>
             {f'<span style="color:#FFD700; font-weight:700;">C: {captain_name}</span>' if captain_name else ''}
-            {f'<span style="color:#E90052; font-weight:700; margin-left:10px;">{active_chip}</span>' if active_chip else ''}
+            {f'<span style="color:#E90052; font-weight:700; margin-left:8px;">{active_chip}</span>' if active_chip else ''}
         </div>
         """
-
     rows = [
         ("FWD", fwds, 10),
         ("MID", mids, 23),
         ("DEF", defs, 36),
-        ("GK",  gk,   54)
+        ("GK", gk, 54)
     ]
-    
+   
     html_content = f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
@@ -168,7 +167,7 @@ def render_formation(picks, players, live_pts, teams, picks_data):
     <div class="collapsible">
     {header_html}
     """
-    
+   
     for pos, data, top_pct in rows:
         if not data: continue
         html_content += f'<div class="row-container" style="top:{top_pct}%;">'
@@ -186,7 +185,7 @@ def render_formation(picks, players, live_pts, teams, picks_data):
             </div>
             """
         html_content += "</div>"
-    
+   
     html_content += '<div class="bench">'
     for p in bench:
         pl = players[p['element']]
@@ -201,19 +200,17 @@ def render_formation(picks, players, live_pts, teams, picks_data):
         </div>
         """
     html_content += "</div></div>"
-    
+   
     return html_content
 
-# === MAIN STYLES: CLICKABLE ROW ===
+# === MAIN STYLES: COLORED ROW UNCHANGED ===
 st.markdown("""
 <style>
     .main {background: #0D1117; color: #FFFFFF; padding: 6px;}
-    .title {font-size: 20px; text-align: center; background: linear-gradient(90deg, #0057B8, #E90052); 
+    .title {font-size: 20px; text-align: center; background: linear-gradient(90deg, #0057B8, #E90052);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 2px 0; font-weight: 700;}
-    .row {display: flex; align-items: center; padding: 6px 8px; margin: 2px 0; 
-          background: #161B22; border-radius: 6px; border-left: 3px solid #30363D; font-size: 11.5px;
-          cursor: pointer; transition: 0.2s;}
-    .row:hover {background: #1F2937;}
+    .row {display: flex; align-items: center; padding: 6px 8px; margin: 2px 0;
+          background: #161B22; border-radius: 6px; border-left: 3px solid #30363D; font-size: 11.5px;}
     .top1 {background: linear-gradient(135deg, #E90052, #0057B8) !important; color: #FFF !important; border-left-color: #FFD700;}
     .top2 {background: linear-gradient(135deg, #3D195B, #0057B8) !important; color: #FFF !important;}
     .top3 {background: linear-gradient(135deg, #E90052, #3D195B) !important; color: #FFF !important;}
@@ -222,9 +219,6 @@ st.markdown("""
     .gw-label {color: #888; font-size: 9px; margin: 0 4px;}
     .gw {font-size: 10px; color: #10B981;}
     .gw-down {color: #EF4444;}
-    /* Hide expander arrow */
-    .streamlit-expanderHeader {display: none !important;}
-    .streamlit-expander {border: none !important; padding: 0 !important; margin: 0 !important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -250,21 +244,16 @@ def get_data():
 standings, gw, live, players, teams = get_data()
 live_pts = {e['id']: e['stats']['total_points'] for e in live.get('elements', [])}
 
-# === SESSION STATE FOR EXPANDERS ===
-if 'expanded' not in st.session_state:
-    st.session_state.expanded = set()
-
-for idx, player in enumerate(standings):
+for player in standings:
     rank = player['rank']
     name = player['player_name'][:11]
     team = player['entry_name'][:16]
     total = player['total']
     entry_id = player['entry']
-    
+   
     change_str = ""
     picks = []
-    picks_data = {}
-    
+   
     try:
         picks_data = requests.get(f"{BASE_URL}entry/{entry_id}/event/{gw}/picks/").json()
         picks = picks_data.get('picks', [])
@@ -276,38 +265,22 @@ for idx, player in enumerate(standings):
         pass
 
     row_class = "top1" if rank == 1 else "top2" if rank == 2 else "top3" if rank <= 3 else ""
-    
-    # === CLICKABLE ROW ===
-    key = f"row_{idx}"
-    is_expanded = key in st.session_state.expanded
-    
-    col1, col2 = st.columns([1, 20])
-    with col1:
-        if st.button(">", key=f"btn_{idx}", help="Toggle squad"):
-            if is_expanded:
-                st.session_state.expanded.discard(key)
-            else:
-                st.session_state.expanded.add(key)
-            st.rerun()
-    
-    with col2:
-        st.markdown(f"""
-        <div class='row {row_class}'>
-            <span class='rank'>#{rank}</span>
-            <span style='flex:1; margin-left:5px;'>{name}</span>
-            <span style='font-weight:600; min-width:95px;'>{team}</span>
-            <span class='points'>{player['event_total']}</span><span class='gw-label'>GW</span>
-            <span class='points'>{total}</span><span class='gw-label'>Total</span>
-            {change_str}
-        </div>
-        """, unsafe_allow_html=True)
-
-    # === HIDDEN EXPANDER ===
-    if is_expanded:
-        with st.expander("", expanded=True):
-            st.markdown("<style>.streamlit-expanderHeader {display: none !important;}</style>", unsafe_allow_html=True)
-            formation_html = render_formation(picks, players, live_pts, teams, picks_data)
-            html(formation_html, height=600)
+   
+    # === COLORED ROW: 100% UNCHANGED ===
+    st.markdown(f"""
+    <div class='row {row_class}'>
+        <span class='rank'>#{rank}</span>
+        <span style='flex:1; margin-left:5px;'>{name}</span>
+        <span style='font-weight:600; min-width:95px;'>{team}</span>
+        <span class='points'>{player['event_total']}</span><span class='gw-label'>GW</span>
+        <span class='points'>{total}</span><span class='gw-label'>Total</span>
+        {change_str}
+    </div>
+    """, unsafe_allow_html=True)
+   
+    with st.expander("", expanded=False):
+        formation_html = render_formation(picks, players, live_pts, teams)
+        html(formation_html, height=600)
 
 st.markdown(f"""
 <div style='text-align:center; margin:8px 0; padding:6px; background:#0057B8; border-radius:6px; color:#FFF; font-size:10px;'>
